@@ -1,0 +1,15 @@
+# TEAM NAME:
+replaceme
+
+# VISUALISER ENABLED:
+1
+
+# SERVER ADDRESS:
+127.0.1.1:42000
+
+# BOT RUNNING COMMAND:
+./EchoBot.py
+
+# Example commands:
+# ./starterbot.py
+# java -jar ./starterbot.jar
