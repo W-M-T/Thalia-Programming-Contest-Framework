@@ -6,7 +6,7 @@ import signal
 import socket
 import time
 import select
-from Visualiser import Visualiser
+
 
 proc = None
 sock = None
@@ -115,6 +115,7 @@ def work():
     #Move to battle start code
     if viz_enabled:
         try:
+            from Visualiser import Visualiser
             viz = Visualiser(1,True,False)
             viz.placeShip(True,(1,1), (1,5))
             viz.placeShip(False,(2,2), (4,2))
