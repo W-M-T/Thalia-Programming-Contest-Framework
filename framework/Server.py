@@ -120,8 +120,9 @@ def serve():
 
     incomingsocket = s.socket()
     local_addr = s.gethostbyname(s.gethostname())
+    #local_addr = s.gethostname()
     print("[+] Starting server at", local_addr)
-    incomingsocket.bind((local_addr,LISTENPORT))
+    incomingsocket.bind(('',LISTENPORT))
     incomingsocket.listen()
 
 

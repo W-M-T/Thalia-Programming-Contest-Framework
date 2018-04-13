@@ -66,9 +66,11 @@ def establish_connection(server, port, teamname, roomkey):
 def waitForChallenge():
     global sock
 
-    s = sock.recv(RECVCONST)
-    if s == s:
-        pass
+    while True:
+        s = lbrecv()
+        if s.find("PING") == 0:
+            print("PONG")
+            sayToServer("PONG")
 
 def readConfig():
     with open("./config","r") as conf:
@@ -114,12 +116,15 @@ def work():
     if viz_enabled:
         try:
             viz = Visualiser(1,True,False)
+            viz.placeShip(True,(1,1), (1,5))
+            viz.placeShip(False,(2,2), (4,2))
             print("[+] UI running")
         except Exception as e:
             print("[-] Got an error:")
             print(e)
             print(proc.stderr.read(), end="")
 
+    time.sleep(90)
 
 
     
