@@ -8,7 +8,7 @@ wikipedia data for ship lengths and amounts
 comm =
 REQUEST ACTION actiontype
 RESULT resulttype
-UPDATE updateinfo
+GOTSHOT coord 
 
 actiontype =
 ISLAND
@@ -18,9 +18,6 @@ SHOT
 resulttype =
 HIT [YOUSUNKMY shiptype]
 MISS
-
-updateinfo =
-SHOT coord
 
 shiptype = 
 BATTLESHIP
