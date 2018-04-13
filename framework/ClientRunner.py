@@ -118,6 +118,9 @@ def work():
             viz = Visualiser(1,True,False)
             viz.placeShip(True,(1,1), (1,5))
             viz.placeShip(False,(2,2), (4,2))
+            import random
+            for i in range(4):
+                viz.change(True,(random.randrange(0,10),random.randrange(0,10)),viz.ISLAND)
             print("[+] UI running")
         except Exception as e:
             print("[-] Got an error:")

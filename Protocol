@@ -1,0 +1,38 @@
+Protocol:
+
+constanten:
+dimensies 10x10
+wikipedia data for ship lengths and amounts
+5 islands
+
+comm =
+REQUEST_ACTION actiontype
+RESULT resulttype
+UPDATE updateinfo
+INVALID
+
+actiontype =
+ISLANDS
+SHIPS
+SHOT
+
+resulttype =
+HIT [YOUSUNKMY shiptype]
+MISS
+
+updateinfo =
+SHOT coord
+
+shiptype = 
+BATTLESHIP
+
+coord =
+(x,y)
+
+
+
+
+
+PLACE SHIP startpos endpos
+PLACE ISLAND pos
+SHOOT pos
