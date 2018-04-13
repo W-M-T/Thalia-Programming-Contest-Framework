@@ -9,6 +9,8 @@ comm =
 REQUEST ACTION actiontype
 RESULT resulttype
 UPDATE updateinfo
+GAME RESULT result
+
 
 actiontype =
 ISLAND
