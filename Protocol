@@ -9,11 +9,11 @@ comm =
 REQUEST_ACTION actiontype
 RESULT resulttype
 UPDATE updateinfo
-INVALID
+result
 
 actiontype =
-ISLANDS
-SHIPS
+ISLAND
+SHIP
 SHOT
 
 resulttype =
@@ -29,10 +29,16 @@ BATTLESHIP
 coord =
 (x,y)
 
+result =
+YOU WON
+YOU LOST [(DISQUALIFED: reason)]
+
+reason =
+some kind of string
 
 
 
 
-PLACE SHIP startpos endpos
-PLACE ISLAND pos
-SHOOT pos
+PLACE SHIP coord coord
+PLACE ISLAND coord
+SHOOT coord
