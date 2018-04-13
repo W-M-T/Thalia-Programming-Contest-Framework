@@ -2,3 +2,4 @@ __pycache__/
 framework/pycache/
 echoJava/
 docs/
+framework/stderr.txt

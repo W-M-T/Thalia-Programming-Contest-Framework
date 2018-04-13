@@ -27,6 +27,8 @@ def cleanup():
         proc.kill()
     if proc is not None:
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+    if debugfile is not None:
+        debugfile.close()
 
 
 import atexit
@@ -71,6 +73,24 @@ def waitForChallenge():
         if s.find("PING") == 0:
             print("PONG")
             sayToServer("PONG")
+            continue
+        maybeother = stripFormat("CHALLENGED BY ",s)
+        if maybeother is not None:
+            return maybeother
+
+def becomeLink(viz):
+    global proc, sock
+
+    data = lbrecv()
+
+    print(data, file=proc.stdin, flush=True)
+    bot_resp = proc.stdout.readline()
+
+def stripFormat(form,data):
+    if data.find(form) == 0:
+        return data.replace(form,"",1)
+    else:
+        return None
 
 def readConfig():
     with open("./config","r") as conf:
@@ -80,23 +100,27 @@ def readConfig():
         try:
             teamname      = s[s.index("# TEAM NAME:") + 1]
             viz           = s[s.index("# VISUALISER ENABLED:") + 1] == "1"
+            debug         = s[s.index("# WRITE BOT STDERR TO FILE:") + 1] == "1"
             runcommand    = s[s.index("# BOT RUNNING COMMAND:") + 1]
             (server,port) = s[s.index("# SERVER ADDRESS:") + 1].split(":")
-            return (teamname, viz, runcommand,server,port)
+            return (teamname, viz, debug, runcommand,server,port)
 
         except (ValueError, IndexError):
             print("[-] Config file could not be read")
             exit()
 
 def work():
-    global proc, sock
+    global proc, sock, debugfile
 
     print("[+] Starting client")
-    (team,viz_enabled,command,server,port) = readConfig()
+    (team,viz_enabled, debug_on, command,server,port) = readConfig()
 
-    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
+    if debug_on:
+        debugfile = open("./stderr.txt","w")
+    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
 
     #Test if an error occurred during startup (hacky)
+    '''
     time.sleep(0.2)
     if not select.select([proc.stderr], [], [], 0)[0]:
         print("[+] Starting bot")
@@ -104,13 +128,14 @@ def work():
         print("[-] Got an error:")
         print(proc.stderr.read(), end="")
         exit()
+    '''
 
     print("[?] Enter room key:\n> ",end="")
     roomkey = input().strip()
 
     establish_connection(server, port, team, roomkey)
 
-    #waitForChallenge()
+    otherteam = waitForChallenge()
 
     #Move to battle start code
     if viz_enabled:
@@ -128,7 +153,11 @@ def work():
             print(e)
             print(proc.stderr.read(), end="")
 
-    time.sleep(90)
+    sayToServer("READY")
+    
+    becomeLink(viz)
+
+    print("[*] Client ended")
 
 
     
