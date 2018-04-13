@@ -6,10 +6,9 @@ wikipedia data for ship lengths and amounts
 5 islands
 
 comm =
-REQUEST_ACTION actiontype
+REQUEST ACTION actiontype
 RESULT resulttype
 UPDATE updateinfo
-result
 
 actiontype =
 ISLAND
