@@ -2,7 +2,8 @@
 
 import socket as s
 from Game import GameRunner
-from threading import Thread, Lock
+from threading import Thread, Lock, Event
+from threading import enumerate
 from enum import IntEnum
 from time import sleep
 from Visualiser import Visualiser
@@ -12,7 +13,7 @@ incomingsocket = None
 LISTENPORT = 42000
 RECVCONST = 4096
 
-POLL_INTERVAL = 30
+POLL_INTERVAL = 15#30
 
 def cleanup():
     if incomingsocket is not None:
@@ -28,6 +29,28 @@ lobbyLock = Lock()
 
 
 
+def stripFormat(form,data):
+    if data.find(form) == 0:
+        return data.replace(form,"",1)
+    else:
+        return None
+
+def poll(connection):
+    try:
+        connection.settimeout(2)
+        connection.send(("PING\n").encode("utf-8"))
+        #Do nonbuffered receive
+        bytedata = connection.recv(RECVCONST)
+        if len(bytedata) == 0:#Connection was closed
+            return False
+        connection.settimeout(None)
+        return True
+    except Exception as e:
+        print("!!!!!",e)
+        connection.settimeout(None)
+        return False
+
+
 class ConnHandler(Thread):
 
     def __init__(self, connection, client):
@@ -35,11 +58,10 @@ class ConnHandler(Thread):
         self.connection = connection
         self.client = client
         self.linebuffer = []
-        self.die = False
+
 
     def lbrecv(self):#Line buffered receive
         #unhandled case is if the socket receive ends in the middle of a message, wich should only happen if there are more than 4096 bytes in the receive buffer
-
         if self.linebuffer:
             return self.linebuffer.pop(0)
         else:
@@ -50,69 +72,72 @@ class ConnHandler(Thread):
             ret = data.pop(0)
             self.linebuffer.extend(data)
             return ret
-   
-    def findOrAddToLobby(self):
+
+    def handleLobby(self):
         lobbyLock.acquire()
-        if self.key not in lobby:
-            #print("Added {} {} to lobby".format(self.name, self.key))
-            lobby[self.key] = self
-            lobbyLock.release()
+        if self.key in lobby:
+            indexLock = lobby[self.key][1]
+            lobbyLock.release()#Prevents poll from blocking all rooms
+
+            indexLock.acquire()
+            lobbyLock.acquire()
+            if self.key in lobby:
+                #Lobby room not empty
+                (foundConn, foundLock) = lobby[self.key]
+                lobbyLock.release()#Now we know that the current index cannot be removed/modified while we are working, because we have the index lock
+                other_alive = poll(foundConn["socket"])
+
+                if other_alive:
+                    print("Starting match in room \"{}\"".format(self.key))
+                    #Start game runner thread
+                    gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},foundConn)
+                    gr.start()
+                    #Delete this index
+                    lobbyLock.acquire()
+                    del(lobby[self.key])#We know that it still exists, because to delete it you need the index lock
+                    lobbyLock.release()
+                    indexLock.release()#Let the other connhandlers for this index work
+                else:
+                    print("Unzombified room \"{}\" with {}:{} ({})".format(self.key, *self.client, self.name))
+                    #Replace the dead connection
+                    foundConn["socket"].close()
+                    lobbyLock.acquire()
+                    lobby[self.key] = ({"name":self.name,"socket":self.connection,"addr":self.client},indexLock)
+                    lobbyLock.release()
+                    indexLock.release()
+
+            else:
+                print("Recreated room \"{}\" for {}:{} ({})".format(self.key, *self.client, self.name))
+                #Match was started in the meantime + lobby room is empty
+                #Add key, copy index lock (so new threads enter the same line)
+                lobby[self.key] = ({"name":self.name,"socket":self.connection,"addr":self.client},indexLock)
+                lobbyLock.release()
+                #release index lock to free any threads later in line
+                indexLock.release()
+
+
         else:
-            other = lobby[self.key]     
-            other.die = True
-            self.die  = True
-            del(lobby[self.key])
+            #Add key, create index lock and end
+            print("Creating new room \"{}\" for {}:{} ({})".format(self.key, *self.client, self.name))
+            lobby[self.key] = ({"name":self.name,"socket":self.connection,"addr":self.client},Lock())
             lobbyLock.release()
 
-            #Safer to do this after releasing the lock
-            gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},{"name":other.name,"socket":other.connection,"addr":other.client})
-            gr.start()
 
-
-    def removeSelfFromLobby(self):
-        lobbyLock.acquire()
-        del(lobby[self.key])
-        lobbyLock.release()
-
-    def poll(self):
-        self.connection.send(("PING\n").encode("utf-8"))
-        self.lbrecv() #Don't even check if it is PONG
-
-    def run(self):
-        
+    def run(self): 
         try:
+            #Get client info
             self.connection.settimeout(2)
             self.name = stripFormat("CLIENT NAME ", self.lbrecv())
             self.key = stripFormat("CLIENT KEY ", self.lbrecv())
 
             if self.name is None or self.key is None:
-                raise Exception("Protocol not followed by {}:{}".format(*self.client))
+                raise Exception("[-] Protocol not followed by {}:{}".format(*self.client))
             self.connection.settimeout(None)
             print("[*] Incoming connection from {}:{} ({}) for room \"{}\"".format(*self.client, self.name, self.key))
 
-            self.findOrAddToLobby()
-
-            self.connection.settimeout(2)
-            while not self.die:
-                try:
-                    sleep(POLL_INTERVAL)
-                    self.poll()
-                except s.timeout:
-                    if not self.die:#Not synchronized, i.e. edge case (known shippable)
-                        self.removeSelfFromLobby()
-                        print("Polling timed out for {} {}".format(self.name, self.key))
-                        self.die = True
-                
-        except Exception as e:
-            print(self,e)
-        self.connection.close()
-
-
-def stripFormat(form,data):
-    if data.find(form) == 0:
-        return data.replace(form,"",1)
-    else:
-        return None
+            self.handleLobby()
+        except s.timeout:
+            print("Timed out during initial info: {}:{}".format(*self.client))
 
 
 def serve():
@@ -122,6 +147,7 @@ def serve():
     local_addr = s.gethostbyname(s.gethostname())
     #local_addr = s.gethostname()
     print("[+] Starting server at", local_addr)
+    incomingsocket.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
     incomingsocket.bind(('',LISTENPORT))
     incomingsocket.listen()
 
@@ -133,6 +159,7 @@ def serve():
             handler.start()
 
     except KeyboardInterrupt:
+        #print(enumerate())
         pass
     incomingsocket.close()
     incomingsocket = None

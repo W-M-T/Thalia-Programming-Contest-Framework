@@ -3,6 +3,7 @@
 from enum import Enum, IntEnum
 from threading import *
 import random
+import time
 
 class Tile(Enum):
     Water = False
@@ -26,6 +27,22 @@ class Board:
             self.board[x][y] = Tile.Ship
 
 
+
+def writeTo(client,data):
+    try:
+        client["socket"].send(data.encode("utf-8"))
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def readFrom(client):
+    try:
+        response = client["socket"].recv(4096)
+    except Exception as e:
+        print(e)
+        return None
+
 class GameRunner(Thread):  
     #implement timeouts
 
@@ -41,20 +58,7 @@ class GameRunner(Thread):
 
         self.turn      = random.randint(0,1)
 
-    def writeTo(client,data):
-        try:
-            client["socket"].send(data.encode("utf-8"))
-            return True
-        except Exception as e:
-            print(e)
-            return False
-
-    def readFrom(client):
-        try:
-            response = client["socket"].recv(4096)
-        except Exception as e:
-            print(e)
-            return None
+    
 
     def doIslands(self):
         print(self.clientA["name"], "versus", self.clientB["name"])
@@ -68,6 +72,12 @@ class GameRunner(Thread):
 
     def run(self):
         print(self.clientA["name"], "versus", self.clientB["name"])
+        #writeTo(self.clientA,"FUCK OFF")
+        print("GAMERUNNER SLEEPY")
+        time.sleep(15)
+        self.clientA["socket"].close()
+        self.clientB["socket"].close()
+        print("GAMERUNNER ENDED")
         #self.doIslands()
         #self.doShips()
         #self.doBattle()

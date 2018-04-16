@@ -14,14 +14,6 @@ linebuffer = []
 SHELLMODE = True
 RECVCONST = 4096
 
-#TODO:
-# line buffer de socket receive in zowel client als server
-# synchronizeer op de lobby in de server waarbij een nieuwe connectionhandler thread checkt of de room al voorkomt en zo ja
-# de client van de andere connhandler jat en laat termineren via een flag
-# die zit namelijk in een loop van poll-wait-check of nog niet gejat-poll
-# de stelende connhandler start een gamerunner met beide clients en termineert zelf daarna
-# zorg ook dat de gamerunner nooit nog poll responses hoeft te verwerken door een poll atomair te maken.
-
 def cleanup():
     if not SHELLMODE and proc is not None:
         proc.kill()
@@ -47,7 +39,10 @@ def lbrecv():#Line buffered receive
     if linebuffer:
         return linebuffer.pop(0)
     else:
-        data = sock.recv(RECVCONST).decode("utf-8").rstrip("\n").split("\n")
+        bytedata = sock.recv(RECVCONST)
+        if len(bytedata) == 0:#Connection was closed
+            raise Exception("Connection was closed")
+        data = bytedata.decode("utf-8").rstrip("\n").split("\n")
         ret = data.pop(0)
         linebuffer.extend(data)
         return ret
@@ -69,6 +64,7 @@ def waitForChallenge():
     global sock
 
     while True:
+        print("WAITING")
         s = lbrecv()
         if s.find("PING") == 0:
             print("PONG")
@@ -78,13 +74,51 @@ def waitForChallenge():
         if maybeother is not None:
             return maybeother
 
+
+
+PROT_SERVERBOTSERVER = ["REQUEST ACTION SHOT"]
+PROT_SERVER          = ["UPDATE ", "GAME RESULT "]
+
+def getDepth(data):
+    if data in PROT_SERVERBOTSERVER:
+        return 3
+    elif any([data.find(x) == 0 for x in PROT_SERVER]):
+        return 1
+    else:
+        return 2
+
 def becomeLink(viz):
     global proc, sock
+    
+    end = False
 
-    data = lbrecv()
+    while not end:
+        print("LOOPING")
 
-    print(data, file=proc.stdin, flush=True)
-    bot_resp = proc.stdout.readline()
+        #SERVER -> BOT
+        data = lbrecv()
+        print(data)
+        print(data, file=proc.stdin, flush=True)
+
+        flow = getDepth(data)
+
+        if flow >= 2:
+            #BOT -> SERVER
+            bot_resp = proc.stdout.readline().rstrip("\n")
+            print(bot_resp)
+            sayToServer(bot_resp)
+
+        if flow >= 3:
+            #SERVER -> BOT AGAIN
+            data_result = lbrecv()
+            print(data_result)
+            print(data, file=prod.stdin, flush=True)
+
+            if data.find("GAME RESULT ") == 0:
+                print("GAME OVER")
+                end = True
+    print("Link stopped")
+
 
 def stripFormat(form,data):
     if data.find(form) == 0:
@@ -92,6 +126,7 @@ def stripFormat(form,data):
     else:
         return None
 
+import random
 def readConfig():
     with open("./config","r") as conf:
         s = conf.read().split("\n")
@@ -103,7 +138,7 @@ def readConfig():
             debug         = s[s.index("# WRITE BOT STDERR TO FILE:") + 1] == "1"
             runcommand    = s[s.index("# BOT RUNNING COMMAND:") + 1]
             (server,port) = s[s.index("# SERVER ADDRESS:") + 1].split(":")
-            return (teamname, viz, debug, runcommand,server,port)
+            return (teamname+str(random.randrange(99)), viz, debug, runcommand,server,port)
 
         except (ValueError, IndexError):
             print("[-] Config file could not be read")
@@ -114,6 +149,7 @@ def work():
 
     print("[+] Starting client")
     (team,viz_enabled, debug_on, command,server,port) = readConfig()
+    print(team)
 
     if debug_on:
         debugfile = open("./stderr.txt","w")
