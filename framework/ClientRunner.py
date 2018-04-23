@@ -321,6 +321,8 @@ def work():
         try:
             from Visualiser import Visualiser
             viz = Visualiser(2,True,False)
+            print("YOU={}".format(team))
+            viz.updateTitle("You ({})".format(team),"Other ({})".format(otherteam))
 
             print("[+] UI running")
         except Exception as e:

@@ -209,6 +209,9 @@ def writeTo(client,data):
         print(e)
         return False
 
+class connClosedException(Exception):
+    pass
+
 def readFrom(client):
     linebuffer = client["linebuffer"]
     sock       = client["socket"]
@@ -219,7 +222,7 @@ def readFrom(client):
         print("{}: ".format(client["name"]),end="")
         bytedata = sock.recv(RECVCONST)
         if len(bytedata) == 0:#Connection was closed
-            raise Exception("Connection was closed")
+            raise connClosedException("Connection from {} was closed".format(client["name"]))
         data = bytedata.decode("utf-8").rstrip("\n").split("\n")
         #data = bytedata.rstrip("\n").split("\n")
         ret = data.pop(0).rstrip(" ")
@@ -419,13 +422,14 @@ class GameRunner(Thread):
             print("GAMERUNNER SLEEPY")
             time.sleep(15)
             
-            print("GAMERUNNER ENDED")
-        except GameEndException as e:
+            
+        except (GameEndException,connClosedException) as e:
             print(e)
 
         self.clientA["socket"].close()
         self.clientB["socket"].close()
-
+        print("GAMERUNNER ENDED")
+        
 
 def main():
     from Visualiser import Visualiser

@@ -51,7 +51,9 @@ class Visualiser():
 
     def updateTitle(self,own_name,other_name):
         self.own.wm_title(TITLE + " - " + own_name)
+        self.own.update()
         self.other.wm_title(TITLE + " - " + other_name)
+        self.other.update()
 
 
     def __init__(self, subs, show_own, show_other):
