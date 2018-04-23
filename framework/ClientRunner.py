@@ -7,6 +7,8 @@ import socket
 import time
 import select
 
+#refactor:
+#move the parsing and viz update code to another file to keep this runner independent of the game
 
 proc = None
 sock = None
@@ -63,11 +65,12 @@ def establish_connection(server, port, teamname, roomkey):
 def waitForChallenge():
     global sock
 
+    print("[*] Waiting for challenger")
+
     while True:
-        print("WAITING")
+        
         s = lbrecv()
         if s.find("PING") == 0:
-            print("PONG")
             sayToServer("PONG")
             continue
         maybeother = stripFormat("CHALLENGED BY ",s)
@@ -87,38 +90,187 @@ def getDepth(data):
     else:
         return 2
 
-def becomeLink(viz):
+class gameEnded(Exception):
+    pass
+
+def testEnd(data):
+    if data.find("GAME RESULT ") == 0:
+        print("GAME OVER")
+        raise gameEnded
+
+def becomeLink(viz):#TODO end anywhere
     global proc, sock
     
     end = False
+    try:
 
-    while not end:
-        print("LOOPING")
+        while True:
+            #print("LOOPING")
 
-        #SERVER -> BOT
-        data = lbrecv()
-        print(data)
-        print(data, file=proc.stdin, flush=True)
+            #SERVER -> BOT
+            data = lbrecv()
+            print(data)
+            #print(data, file=proc.stdin, flush=True)
+            updateViz(viz,data)#(Voor UPDATE command)
 
-        flow = getDepth(data)
+            testEnd(data)
 
-        if flow >= 2:
-            #BOT -> SERVER
-            bot_resp = proc.stdout.readline().rstrip("\n")
-            print(bot_resp)
-            sayToServer(bot_resp)
+            flow = getDepth(data)
 
-        if flow >= 3:
-            #SERVER -> BOT AGAIN
-            data_result = lbrecv()
-            print(data_result)
-            print(data, file=prod.stdin, flush=True)
+            if flow >= 2:
+                #BOT -> SERVER
+                bot_resp = input()#proc.stdout.readline().rstrip("\n")
+                #print(bot_resp)
+                sayToServer(bot_resp)
+                updateViz(viz,data,response=bot_resp)#(Voor PLACE command)
 
-            if data.find("GAME RESULT ") == 0:
-                print("GAME OVER")
-                end = True
+                testEnd(data)
+
+            if flow >= 3:
+                #SERVER -> BOT AGAIN
+                data_result = lbrecv()
+                print(data_result)
+                #print(data, file=prod.stdin, flush=True)
+                updateViz(viz,data,response=bot_resp,result=data_result)#(Voor SHOOT -> RESULT command)
+
+                testEnd(data)
+
+    except gameEnded:
+        pass
+
+            
     print("Link stopped")
 
+shiplist = []
+
+def getShipHit(viz,coord):
+    global shiplist
+
+
+    for (shipstart,shipend) in shiplist:
+        if shipstart[0] == shipend[0]:#Vertical
+            if shipstart[0] != coord[0]:
+                continue
+            top = max(shipstart[1],shipend[1])
+            bot = min(shipstart[1],shipend[1])
+            print(bot,top)
+            if coord[1] == top:
+                return viz.SHIP_HIT_TOP
+            elif coord[1] == bot:
+                return viz.SHIP_HIT_BOT
+            elif coord[1] in range(bot + 1, top):
+                return viz.SHIP_HIT_MID
+            
+            
+        else:#Horizontal
+            if shipstart[1] != coord[1]:
+                continue
+            left = min(shipstart[0],shipend[0])
+            right = max(shipstart[0],shipend[0])
+            print(left,right)
+            if coord[0] == left:
+                return viz.SHIP_HIT_LEFT
+            elif coord[0] == right:
+                return viz.SHIP_HIT_RIGHT
+            elif coord[0] in range(left + 1, right):
+                return viz.SHIP_HIT_MID
+
+    return viz.CROSS
+
+
+def updateViz(viz, init, response = None, result = None):
+    global shiplist
+    
+    if viz is not None:
+        #UPDATE COMMAND
+        maybeUpdate = stripFormat("UPDATE ", init)
+        if maybeUpdate is not None:
+            maybeGotShot   = stripFormat("GOTSHOT ",maybeUpdate)
+            if maybeGotShot is not None:
+                maybeCoord = parseCoord(maybeGotShot)
+                if maybeCoord is not None:
+                    viz.change(True,maybeCoord,getShipHit(viz,maybeCoord))
+                #malformed coord
+                return
+
+            maybeGotIsland = stripFormat("GOTISLAND ",maybeUpdate)
+            if maybeGotIsland is not None:
+                maybeCoord = parseCoord(maybeGotIsland)
+                if maybeCoord is not None:
+                    viz.change(True, maybeCoord, viz.ISLAND)
+                    return
+                #malformed coord
+                return
+            
+            #malformed update
+            return
+
+        if response is not None:
+            #PLACE COMMAND
+            maybePlace = stripFormat("PLACE ",response)
+            if maybePlace is not None:
+
+                maybeShip = stripFormat("SHIP ",maybePlace)
+                if maybeShip is not None:
+                    split = maybeShip.split(" ")
+                    if len(split) != 2:
+                        pass#malformed command
+                    maybeCoordStart = parseCoord(split[0])
+                    maybeCoordEnd = parseCoord(split[1])
+                    if maybeCoordStart is not None and maybeCoordEnd is not None:
+                        shiplist.append((maybeCoordStart,maybeCoordEnd))
+                        viz.placeShip(True,maybeCoordStart,maybeCoordEnd)
+                        return
+                    #malformed coords
+
+                maybeIsland = stripFormat("ISLAND ",maybePlace)
+                if maybeIsland is not None:
+                    maybeCoord = parseCoord(maybeIsland)
+                    if maybeCoord is not None:
+                        viz.change(False,maybeCoord,viz.ISLAND)
+                        return
+                    #malformed coord
+                    return
+
+                #malformed place
+                return
+
+            #SHOOT->RESULT
+            maybeShoot = stripFormat("SHOOT ",response)
+            if maybeShoot is not None and result is not None:
+                maybeCoord = parseCoord(maybeShoot)
+                maybeResult = stripFormat("RESULT ",result)
+                if maybeCoord is not None and maybeResult is not None:
+                    maybeHit = stripFormat("HIT",maybeResult)
+                    if maybeHit is not None:
+                        viz.change(False,maybeCoord,viz.BOOM)
+                        return
+                    maybeMiss = stripFormat("MISS",maybeResult)
+                    if maybeMiss is not None:
+                        viz.change(False,maybeCoord,viz.CROSS)
+                        return
+                    #malformed result
+                    return
+
+
+def parseCoord(data):
+    if data[0] == '(' and data[-1] == ')':
+        data = data[1:-1]
+        data = data.split(",")
+        #print("coords parsed:",data)
+        if len(data) == 2:
+            try:   
+                (a,b) = (int(data[0]),int(data[1]))
+                if 0 <= a < 10 and 0 <= b < 10:
+                    return (a,b)
+                else:
+                    return None
+            except ValueError:
+                return None
+        else:
+            return None
+    else:
+        return None
 
 def stripFormat(form,data):
     if data.find(form) == 0:
@@ -155,17 +307,6 @@ def work():
         debugfile = open("./stderr.txt","w")
     proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
 
-    #Test if an error occurred during startup (hacky)
-    '''
-    time.sleep(0.2)
-    if not select.select([proc.stderr], [], [], 0)[0]:
-        print("[+] Starting bot")
-    else:
-        print("[-] Got an error:")
-        print(proc.stderr.read(), end="")
-        exit()
-    '''
-
     print("[?] Enter room key:\n> ",end="")
     roomkey = input().strip()
 
@@ -173,33 +314,71 @@ def work():
 
     otherteam = waitForChallenge()
 
+    print("[+] Challenged by {}".format(otherteam))
+
     #Move to battle start code
     if viz_enabled:
         try:
             from Visualiser import Visualiser
-            viz = Visualiser(1,True,False)
-            viz.placeShip(True,(1,1), (1,5))
-            viz.placeShip(False,(2,2), (4,2))
-            import random
-            for i in range(4):
-                viz.change(True,(random.randrange(0,10),random.randrange(0,10)),viz.ISLAND)
+            viz = Visualiser(2,True,False)
+
             print("[+] UI running")
         except Exception as e:
             print("[-] Got an error:")
             print(e)
             print(proc.stderr.read(), end="")
+    else:
+        viz = None
 
+    print("READY")
     sayToServer("READY")
     
-    becomeLink(viz)
+    becomeLink(viz=viz)
+    time.sleep(10)#Remove this still
 
     print("[*] Client ended")
 
 
-    
+def testVizUpdater():
+    from Visualiser import Visualiser
+    viz = Visualiser(2,True,False)
+    testLink(viz)
+
+def testLink(viz):
+  
+    end = False
+
+    while not end:
+        print("LOOPING")
+
+        #SERVER -> BOT
+        data = input().rstrip("\n")
+        updateViz(viz,data)#(Voor UPDATE command)
+
+        if data.find("GAME RESULT ") == 0:
+                print("GAME OVER")
+                end = True
+
+        flow = getDepth(data)
+
+        if flow >= 2:
+            #BOT -> SERVER
+            bot_resp = input().rstrip("\n")
+
+            updateViz(viz,data,response=bot_resp)#(Voor PLACE command)
+
+        if flow >= 3:
+            #SERVER -> BOT AGAIN
+            data_result = input().rstrip("\n")
+
+            updateViz(viz,data,response=bot_resp,result=data_result)#(Voor SHOOT -> RESULT command)
+
+            
+    print("Link stopped")
     
 
 def main():
+    #testVizUpdater()
     try:
         work()
     except KeyboardInterrupt:

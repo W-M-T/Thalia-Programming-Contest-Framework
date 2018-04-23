@@ -17,7 +17,7 @@ def coordToGrid(x, y):
 
 class Visualiser():
     #TODO Refactor this stuff
-    def initTable(self, window, labeltable,show):
+    def initTable(self, window, labeltable, show):
         for y in range(SIZE + 1):
             lrow = []
             for x in range(SIZE + 1):
@@ -36,6 +36,23 @@ class Visualiser():
                 templabel.grid(row=y, column=x)
                 lrow.append(templabel)
             labeltable.append(lrow)
+
+    def resetBoth(self):
+        for own in range(0,2):
+            root = self.own if own == 1 else self.other
+            table = self.own_labeltable if own == 1 else self.other_labeltable
+            show = self.show_own if own == 1 else self.show_other
+            
+            for y in range(SIZE):
+                for x in range(SIZE):
+                    gridcoord = coordToGrid(x,y)
+                    table[gridcoord[0]][gridcoord[1]].configure(image=self.WATER if show else self.QUESTIONMARK)
+            root.update()
+
+    def updateTitle(self,own_name,other_name):
+        self.own.wm_title(TITLE + " - " + own_name)
+        self.other.wm_title(TITLE + " - " + other_name)
+
 
     def __init__(self, subs, show_own, show_other):
         self.own = Tk()
@@ -62,6 +79,8 @@ class Visualiser():
         self.SHIP_RIGHT     = importImg('img/80x80/rightarrow.png', subs)
         self.CROSS          = importImg('img/80x80/cross.png', subs)
         self.QUESTIONMARK   = importImg('img/80x80/questionmark.png', subs)
+        self.TROPHY         = importImg('img/160x160/trophy.png', subs)
+        self.SKULL          = importImg('img/160x160/skull.png', subs)
 
         self.own_labeltable   = []
         self.show_own = show_own
@@ -103,7 +122,6 @@ class Visualiser():
                     gridcoord = coordToGrid(i, start[1])
                     table[gridcoord[0]][gridcoord[1]].configure(image=self.SHIP_MID)
         root.update()
-        print("Ship placed")
 
     def change(self, own, coord, img):
         root = self.own if own else self.other
@@ -112,19 +130,25 @@ class Visualiser():
         table[gridcoord[0]][gridcoord[1]].configure(image=img)
         root.update()
 
+    def showResult(self, own, img):#unfinished
+        #use two frames (one with result, one with grid)
+        root = self.own if own else self.other
+        table = self.own_labeltable if own else self.other_labeltable
+        gridcoord = coordToGrid(3,4)
+        skull = Label(root, image=self.TROPHY)
+        skull.configure(background = "#FFFFFF")
+        skull.grid(column=gridcoord[0],row=gridcoord[1],rowspan=2,columnspan=2)
+        root.update()
+
 
 if __name__ == "__main__":
-    v = Visualizer(1,True,False)
+    v = Visualiser(1,True,False)
     v.placeShip(True,(1,1),(1,5))
     v.placeShip(False,(2,2),(4,2))
     v.change(True,(3,3),v.ISLAND)
-    print("I AM SO BLOCKING")
-    v.change(True,(3,3),v.ISLAND)
-    print("YO DONT EVEN KNOW")
-    v.change(True,(3,3),v.ISLAND)
-    print("YO DONT EVEN KNOW")
-    v.change(True,(3,3),v.ISLAND)
-    print("YO DONT EVEN KNOW")
+    #v.showResult(True,None)
 
     import time
+    time.sleep(5)
+    v.resetBoth()
     time.sleep(90)

@@ -44,3 +44,19 @@ some kind of string
 PLACE SHIP coord coord
 PLACE ISLAND coord
 SHOOT coord
+
+
+
+Update visualiser wanneer:
+Eigen bord wanneer de tegenstander een eiland plaatst
+Eigen bord wanneer de bot een schip plaatst
+Eigen bord wanneer de tegenstander schiet
+
+Ander bord wanneer de bot een eiland plaatst
+Ander bord wanneer de bot schiet en het resultaat terug krijgt
+
+Oftewel:
+
+UPDATE is altijd vizupdate
+PLACE is altijd vizupdate
+SHOOT is pas een update wanneer het resultaat binnenkomt

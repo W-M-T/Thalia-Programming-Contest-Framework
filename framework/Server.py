@@ -2,7 +2,7 @@
 
 import socket as s
 from Game import GameRunner
-from threading import Thread, Lock, Event
+from threading import Thread, Lock
 from threading import enumerate
 from enum import IntEnum
 from time import sleep
