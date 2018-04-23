@@ -5,6 +5,8 @@ from threading import Thread
 import random
 import time
 
+from Visualiser import Visualiser
+
 RECVCONST = 4096
 TURNTIMEOUT      = 2.0
 MINTURNTIME      = 1.0
@@ -55,8 +57,6 @@ def shiplength(start,end):
 class GameEndException(Exception):
     pass
 
-#TODO zorg ervoor dat je alleen de juiste hoeveelheid van de juiste lengte schepen kunt plaatsen
-
 class Board:
 
     def __init__(self,dims, viz = None, own = True):
@@ -80,7 +80,7 @@ class Board:
         if self.onBoard(coord) and self.get(coord).free:
             self.set(coord,Tile.Island)
             if self.viz is not None:
-                self.viz.change(self.ownviz,coord,self.viz.ISLAND)
+                self.viz.syncUpdate(Visualiser.change,[self.ownviz,coord,self.viz.ISLAND])
             return True
         else:
             return False
@@ -106,7 +106,7 @@ class Board:
                 self.shiphits.append((Ship(shiplen),False,[(False,(start[0],y)) for y in range(bot,top + 1)]))
 
                 if self.viz is not None:
-                    self.viz.placeShip(self.ownviz,start,end)
+                    self.viz.syncUpdate(Visualiser.placeShip,[self.ownviz,start,end])
 
             elif start[1] == end[1]:#horizontal
                 left = min(start[0],end[0])
@@ -121,7 +121,7 @@ class Board:
                 self.shiphits.append((Ship(shiplen),False,[(False,(x,start[1])) for x in range(left,right + 1)]))
 
                 if self.viz is not None:
-                    self.viz.placeShip(self.ownviz,start,end)
+                    self.viz.syncUpdate(Visualiser.placeShip,[self.ownviz,start,end])
 
             else:
                 return (False,"NOT HORIZONTAL OR VERTICAL")
@@ -137,7 +137,7 @@ class Board:
             img = self.viz.CROSS
             if hit:
                 img = self.getHitImg(self.viz,self.getShipHitSide(coord))
-            self.viz.change(self.ownviz, coord, img)
+            self.viz.syncUpdate(Visualiser.change,[self.ownviz, coord, img])
             
         return (hit,sunkship)
 
@@ -201,8 +201,8 @@ class Board:
 
 def writeTo(client,data):
     try:
-        print("@{}\t".format(client["name"]),end="")
-        print(data)
+        #print("@{}\t".format(client["name"]),end="")
+        #print(data)
         client["socket"].send((data+"\n").encode("utf-8"))
         return True
     except Exception as e:
@@ -219,7 +219,7 @@ def readFrom(client):
     if linebuffer:
         return linebuffer.pop(0)
     else:
-        print("{}: ".format(client["name"]),end="")
+        #print("{}: ".format(client["name"]),end="")
         bytedata = sock.recv(RECVCONST)
         if len(bytedata) == 0:#Connection was closed
             raise connClosedException("Connection from {} was closed".format(client["name"]))
@@ -227,7 +227,7 @@ def readFrom(client):
         #data = bytedata.rstrip("\n").split("\n")
         ret = data.pop(0).rstrip(" ")
         linebuffer.extend(data)
-        print(ret)
+        #print(ret)
         return ret
 
 def stripFormat(form,data):
@@ -271,8 +271,8 @@ class GameRunner(Thread):
         self.clientA["board"] = Board((10,10),viz = viz,own = True)
         self.clientB["board"] = Board((10,10),viz = viz,own = False)
         
-        #self.clientA["socket"].settimeout(None)
-        #self.clientB["socket"].settimeout(None)
+        self.clientA["socket"].settimeout(None)
+        self.clientB["socket"].settimeout(None)
 
         self.turn = random.randint(0,1)
         self.end  = False
@@ -295,8 +295,9 @@ class GameRunner(Thread):
         if maybeIsland is not None:
             maybeCoord = parseCoord(maybeIsland)
             if maybeCoord is not None:
-                if not self.turnClient()["board"].placeIsland(maybeCoord):
+                if not self.otherClient()["board"].placeIsland(maybeCoord):
                     self.disqualify("INVALID ISLAND LOCATION")
+                return maybeCoord
             else:
                 self.disqualify("INVALID COORDINATE")
         else:
@@ -349,7 +350,9 @@ class GameRunner(Thread):
                 writeTo(self.turnClient(),"REQUEST ACTION ISLAND")
                 response = readFrom(self.turnClient())
 
-                self.handleIsland(response)
+                islandcoord = self.handleIsland(response)
+
+                writeTo(self.otherClient(),"UPDATE GOTISLAND {}".format(islandcoord))
 
                 time_response = time.time()
                 delta = time_response - time_start
@@ -393,6 +396,9 @@ class GameRunner(Thread):
                 writeTo(self.otherClient(),"UPDATE GOTSHOT {}".format(coord))
                 
                 if self.otherClient()["board"].gameover():
+                    print("{} won against {}".format(
+                            self.turnClient()["name"],
+                            self.otherClient()["name"]))
                     writeTo(self.turnClient(),"GAME RESULT YOU WON")
                     writeTo(self.otherClient(),"GAME RESULT YOU LOST")
                     self.end = True
@@ -409,18 +415,15 @@ class GameRunner(Thread):
             print(self.clientA["name"], "versus", self.clientB["name"])
 
             if self.clientA["board"].viz is not None:
-                self.clientA["board"].viz.updateTitle(self.clientA["name"],self.clientB["name"])
+                self.clientA["board"].viz.syncUpdate(Visualiser.updateTitle, [self.clientA["name"],self.clientB["name"]])
 
             writeTo(self.clientA,"CHALLENGED BY {}".format(self.clientB["name"]))
             writeTo(self.clientB,"CHALLENGED BY {}".format(self.clientA["name"]))
 
             self.waitReady()
-            self.doIslands()
+            #self.doIslands()
             self.doShips()
             self.doBattle()
-
-            print("GAMERUNNER SLEEPY")
-            time.sleep(15)
             
             
         except (GameEndException,connClosedException) as e:
@@ -428,19 +431,19 @@ class GameRunner(Thread):
 
         self.clientA["socket"].close()
         self.clientB["socket"].close()
-        print("GAMERUNNER ENDED")
+
+        if self.clientA["board"].viz is not None:
+            time.sleep(5)
+            self.clientA["board"].viz.syncUpdate(Visualiser.resetBoth, [])
+            self.clientA["board"].viz.syncUpdate(Visualiser.updateTitle, ["",""])
         
 
 def main():
-    from Visualiser import Visualiser
     viz = Visualiser(1,True,True)#None#
     gr = GameRunner({"name":"testerbot"},{"name":"randbot"},viz=viz)
     gr.run()
-    #gr.start()
+    
 
-    field = Board((10,10))
-    k = Ship.CARRIER
-    #print(k.count)
 
 if __name__ == "__main__":
     main()

@@ -4,6 +4,7 @@
 from tkinter import *
 from enum import Enum
 from threading import Thread
+from queue import Queue 
 
 SIZE = 10
 TITLE = "Thalia & Cognac Battleships"
@@ -56,7 +57,10 @@ class Visualiser():
         self.other.update()
 
 
-    def __init__(self, subs, show_own, show_other):
+    def __init__(self, subs, show_own, show_other,is_main = True):
+        self.updateQueue = Queue()
+        self.is_main = is_main
+
         self.own = Tk()
         self.own.wm_title(TITLE + " - You")
         self.own.config(background = "#FFFFFF", padx=10, pady=10)
@@ -141,6 +145,17 @@ class Visualiser():
         skull.configure(background = "#FFFFFF")
         skull.grid(column=gridcoord[0],row=gridcoord[1],rowspan=2,columnspan=2)
         root.update()
+
+    def doUIThread(self):
+        while True:
+            (func,args) = self.updateQueue.get()
+            func(self,*args)
+
+    def syncUpdate(self,func,args):
+        if not self.is_main:
+            self.updateQueue.put((func,args))
+        else:
+            func(self,*args)
 
 
 if __name__ == "__main__":

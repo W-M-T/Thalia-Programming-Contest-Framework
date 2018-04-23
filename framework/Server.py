@@ -7,11 +7,13 @@ from threading import enumerate
 from enum import IntEnum
 from time import sleep
 from Visualiser import Visualiser
+from argparse import ArgumentParser
 
 
 incomingsocket = None
 LISTENPORT = 42000
 RECVCONST = 4096
+viz = None
 
 #TODO main ui thread and one listener thread
 #gamerunner viz updates through synchronized queue datastructure
@@ -69,12 +71,14 @@ class ConnHandler(Thread):
             bytedata = self.connection.recv(RECVCONST)
             if len(bytedata) == 0:#Connection was closed
                 raise s.timeout
-            data = bytedata.decode("utf-8").rstrip("\n").split("\n")
+            data = bytedata.decode("utf-8").rstrip("\n").split("\n")#maybe catch the possible decode error?
             ret = data.pop(0)
             self.linebuffer.extend(data)
             return ret
 
     def handleLobby(self):
+        global viz
+
         lobbyLock.acquire()
         if self.key in lobby:
             indexLock = lobby[self.key][1]
@@ -91,7 +95,7 @@ class ConnHandler(Thread):
                 if other_alive:
                     print("Starting match in room \"{}\"".format(self.key))
                     #Start game runner thread
-                    gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},foundConn)
+                    gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},foundConn, viz = viz)#Do some test to find out
                     gr.start()
                     #Delete this index
                     lobbyLock.acquire()
@@ -141,33 +145,61 @@ class ConnHandler(Thread):
             print("Timed out during initial info: {}:{}".format(*self.client))
 
 
-def serve():
-    global incomingsocket
+class Server(Thread):#Handle the keyboardinterrupt from the main thread still
 
-    incomingsocket = s.socket()
-    local_addr = s.gethostbyname(s.gethostname())
-    #local_addr = s.gethostname()
-    print("[+] Starting server at", local_addr)
-    incomingsocket.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
-    incomingsocket.bind(('',LISTENPORT))
-    incomingsocket.listen()
+    def __init__(self,daemon):
+        super(Server, self).__init__(daemon=daemon)
+
+    def serve():
+        global incomingsocket
+
+        incomingsocket = s.socket()
+        local_addr = s.gethostbyname(s.gethostname())
+        #local_addr = s.gethostname()
+        print("[+] Starting server at", local_addr)
+        incomingsocket.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+        incomingsocket.bind(('',LISTENPORT))
+        incomingsocket.listen()
 
 
-    try:
-        while True:
-            (connection, client) = incomingsocket.accept()
-            handler = ConnHandler(connection, client)
-            handler.start()
+        try:
+            while True:
+                (connection, client) = incomingsocket.accept()
+                handler = ConnHandler(connection, client)
+                handler.start()
 
-    except KeyboardInterrupt:
-        #print(enumerate())
-        pass
-    incomingsocket.close()
-    incomingsocket = None
-    print("\r[+] Shutting down")
+        except KeyboardInterrupt:#Only ever happens if serve is called from the main thread
+            #print(enumerate())
+            incomingsocket.close()
+            incomingsocket = None
+            print("\r[+] Shutting down")
+        
+
+    def run(self):
+        Server.serve()
 
 def main():
-    serve()
+    global incomingsocket, viz
+    
+    parser = ArgumentParser(description="Programming contest framework")
+    parser.add_argument("-v", "--visual", action="store_true", help="Enable visualiser")
+    args = parser.parse_args()
+
+    server = Server(True)
+    #Server.serve()
+    server.start()
+
+    try:
+        if args.visual:
+            viz = Visualiser(1,True,True, is_main=False)
+            viz.doUIThread()#Necessary because TKinter needs the main thread in order not to complain
+        else:
+            server.join()
+    except KeyboardInterrupt:
+        incomingsocket.close()
+        incomingsocket = None
+        print("\r[+] Shutting down")
+        
 
 if __name__ == "__main__":
     main()

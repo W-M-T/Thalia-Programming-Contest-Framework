@@ -153,7 +153,7 @@ def getShipHit(viz,coord):
                 continue
             top = max(shipstart[1],shipend[1])
             bot = min(shipstart[1],shipend[1])
-            print(bot,top)
+            #print(bot,top)
             if coord[1] == top:
                 return viz.SHIP_HIT_TOP
             elif coord[1] == bot:
@@ -167,7 +167,7 @@ def getShipHit(viz,coord):
                 continue
             left = min(shipstart[0],shipend[0])
             right = max(shipstart[0],shipend[0])
-            print(left,right)
+            #print(left,right)
             if coord[0] == left:
                 return viz.SHIP_HIT_LEFT
             elif coord[0] == right:
@@ -321,7 +321,6 @@ def work():
         try:
             from Visualiser import Visualiser
             viz = Visualiser(2,True,False)
-            print("YOU={}".format(team))
             viz.updateTitle("You ({})".format(team),"Other ({})".format(otherteam))
 
             print("[+] UI running")
@@ -336,11 +335,14 @@ def work():
     sayToServer("READY")
     
     becomeLink(viz=viz)
-    time.sleep(10)#Remove this still
+    try:
+        time.sleep(10)#Should maybe be an option?
+    except KeyboardInterrupt:
+        pass
 
     print("[*] Client ended")
 
-
+#only for debugging:
 def testVizUpdater():
     from Visualiser import Visualiser
     viz = Visualiser(2,True,False)
@@ -380,7 +382,6 @@ def testLink(viz):
     
 
 def main():
-    #testVizUpdater()
     try:
         work()
     except KeyboardInterrupt:
