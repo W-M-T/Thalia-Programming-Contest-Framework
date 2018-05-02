@@ -15,8 +15,6 @@ LISTENPORT = 42000
 RECVCONST = 4096
 viz = None
 
-#TODO main ui thread and one listener thread
-#gamerunner viz updates through synchronized queue datastructure
 
 def cleanup():
     if incomingsocket is not None:

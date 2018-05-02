@@ -109,8 +109,8 @@ def becomeLink(viz):#TODO end anywhere
 
             #SERVER -> BOT
             data = lbrecv()
-            print(data)
-            #print(data, file=proc.stdin, flush=True)
+            #print(data)
+            print(data, file=proc.stdin, flush=True)
             updateViz(viz,data)#(Voor UPDATE command)
 
             testEnd(data)
@@ -119,7 +119,7 @@ def becomeLink(viz):#TODO end anywhere
 
             if flow >= 2:
                 #BOT -> SERVER
-                bot_resp = input()#proc.stdout.readline().rstrip("\n")
+                bot_resp = proc.stdout.readline().rstrip("\n")
                 #print(bot_resp)
                 sayToServer(bot_resp)
                 updateViz(viz,data,response=bot_resp)#(Voor PLACE command)
@@ -129,8 +129,8 @@ def becomeLink(viz):#TODO end anywhere
             if flow >= 3:
                 #SERVER -> BOT AGAIN
                 data_result = lbrecv()
-                print(data_result)
-                #print(data, file=prod.stdin, flush=True)
+                #print(data_result)
+                print(data, file=prod.stdin, flush=True)
                 updateViz(viz,data,response=bot_resp,result=data_result)#(Voor SHOOT -> RESULT command)
 
                 testEnd(data)
