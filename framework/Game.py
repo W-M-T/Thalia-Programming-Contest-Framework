@@ -363,7 +363,7 @@ class GameRunner(Thread):
 
     def doShips(self):
         total = sum([k.count for k in list(Ship)])
-        for cur in range(1):#total
+        for cur in range(total)
             for t in range(0,2):
                 self.turn = t
 
@@ -421,7 +421,7 @@ class GameRunner(Thread):
             writeTo(self.clientB,"CHALLENGED BY {}".format(self.clientA["name"]))
 
             self.waitReady()
-            #self.doIslands()
+            self.doIslands()
             self.doShips()
             self.doBattle()
             
