@@ -42,7 +42,7 @@ class ExampleBot(Bot):
         return (int(self.placementIndex/10),self.placementIndex%10)
 
     def choose_ship_size(self):
-        super().choose_ship_size()
+        return super().choose_ship_size()
 
 if __name__ == "__main__":
     ExampleBot().run()
