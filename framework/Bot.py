@@ -2,9 +2,11 @@
 
 import sys
 import re
-from Game import Board, Ship, Tile
 from enum import Enum,IntEnum
 import random, time
+from Game import Board, Ship, Tile
+from Visualiser import Visualiser
+
 
 class ShipSizes(IntEnum):
     Destroyer  = 2
@@ -12,15 +14,17 @@ class ShipSizes(IntEnum):
     Battleship = 4
     Carrier    = 5
 
+
 class ShipAmounts(IntEnum):
     Destroyer  = 4
     Cruiser    = 3
     Battleship = 2
     Carrier    = 1
 
+
 class Bot():
     def __init__(self):
-        from Visualiser import Visualiser
+        """Initialize instance variables."""
         self.ownBoard = Board((10,10),None,own = True)
         self.enemyBoard = Board((10,10),None,own = False)
         self.shipsToPlace = [[size, Ship(size).count] for size in Ship]
@@ -28,10 +32,12 @@ class Bot():
         self.lastCoord = (0,0)
 
     def handle_result(self,text):
+        """Handle the server's result message."""
         if text.find("RESULT HIT") != -1:
             self.enemyBoard.set(self.lastCoord,Tile.Ship)
 
-    def handle_update(self,text):        
+    def handle_update(self,text):
+        """Handle the server's update message."""
         if text.find("RESULT GOTISLAND"):
             tokens = text.strip().split()
             coord = (int(re.sub("\D","",tokens[2])),
@@ -39,6 +45,7 @@ class Bot():
             self.ownBoard.set(coord,Tile.Island) 
 
     def handle_command(self, text):
+        """Handle the server's message."""
         tokens = text.strip().split()
         if tokens[0] == 'REQUEST' and tokens[1] == 'ACTION':
             if tokens[2] == 'SHIP':
@@ -57,13 +64,12 @@ class Bot():
         if tokens[0] == 'GAME' and tokens[1] == 'RESULT':
             self.done = True
 
-
-
     def choose_ship_location(self):
+        """Return a location where a ship should be placed."""
         raise NotImplementedError("You need to implement your own choose_ship_location method.")
 
     def choose_ship_size(self):
-        #Find a ship size that can still be placed
+        """"Return a ship size that can be placed on the board."""
         shipSize = 0
         for index, (size, count) in enumerate(self.shipsToPlace):
             if count > 0:
@@ -72,30 +78,32 @@ class Bot():
         return shipSize
 
     def choose_island_location(self):
+        """Return the next island's location."""
         self.placementIndex += 1
         return (int(self.placementIndex/10),self.placementIndex%10)
 
     def choose_shot_location(self):
+        """Return the next shot's location."""
         self.placementIndex += 1
         return (int(self.placementIndex/10),self.placementIndex%10)
 
-
     @staticmethod
     def formatCoord(coord):
+        """Return a properly formatted coordinate string."""
         return "(" + str(coord[0]) + "," + str(coord[1]) + ")"
 
     def place_ship(self, start, end):
-        #raise Exception("placeship {0} {1}",start,end)
+        """Print a command to stdout with the next ship's desired coordinates."""
         success = self.ownBoard.placeShip(start, end)
         if not success[0]:
-            pass
-            #raise Exception("Illegal ship placement: {0}.",success[1])
+            raise Exception("Illegal ship placement: {0}.",success[1])
         start = "(" + str(start[0]) + "," + str(start[1]) + ")"
         end = "(" + str(end[0]) + "," + str(end[1]) + ")"
         print("PLACE SHIP",start,end)
         sys.stdout.flush()#Nodig?
 
     def place_island(self, coord):
+        """Print a command to stdout with the next island's desired coordinates."""
         success = self.enemyBoard.placeIsland(coord)
         if not success:
             raise Exception("Illegal island placement.")
@@ -103,11 +111,13 @@ class Bot():
         print("PLACE ISLAND",coord)
 
     def shoot(self, coord):
+        """Print a command to stdout with the next shot's desired coordinates."""
         self.lastCoord = coord
         coord = Bot.formatCoord(coord)
         print("SHOOT", coord)
 
     def run(self):
+        """Run the bot."""
         self.done = False
         while self.done != True:
             command = input()
