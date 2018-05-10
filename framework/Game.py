@@ -363,7 +363,7 @@ class GameRunner(Thread):
 
     def doShips(self):
         total = sum([k.count for k in list(Ship)])
-        for cur in range(total)
+        for cur in range(total):
             for t in range(0,2):
                 self.turn = t
 
