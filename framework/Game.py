@@ -359,8 +359,6 @@ class GameRunner(Thread):
                 if delta < MINTURNTIME:
                     time.sleep(MINTURNTIME - delta)
 
-
-
     def doShips(self):
         total = sum([k.count for k in list(Ship)])
         for cur in range(total):
