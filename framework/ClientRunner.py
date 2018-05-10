@@ -16,6 +16,8 @@ linebuffer = []
 SHELLMODE = True
 RECVCONST = 4096
 
+DEBUG = True
+
 def cleanup():
     if not SHELLMODE and proc is not None:
         proc.kill()
@@ -109,8 +111,10 @@ def becomeLink(viz):#TODO end anywhere
 
             #SERVER -> BOT
             data = lbrecv()
-            #print(data)
-            print(data, file=proc.stdin, flush=True)
+            if DEBUG:
+                print(data)
+            else:
+                print(data, file=proc.stdin, flush=True)
             updateViz(viz,data)#(Voor UPDATE command)
 
             testEnd(data)
@@ -119,7 +123,7 @@ def becomeLink(viz):#TODO end anywhere
 
             if flow >= 2:
                 #BOT -> SERVER
-                bot_resp = proc.stdout.readline().rstrip("\n")
+                bot_resp = input() if DEBUG else proc.stdout.readline().rstrip("\n")
                 #print(bot_resp)
                 sayToServer(bot_resp)
                 updateViz(viz,data,response=bot_resp)#(Voor PLACE command)
@@ -129,8 +133,10 @@ def becomeLink(viz):#TODO end anywhere
             if flow >= 3:
                 #SERVER -> BOT AGAIN
                 data_result = lbrecv()
-                #print(data_result)
-                print(data, file=prod.stdin, flush=True)
+                if DEBUG:
+                    print(data_result)
+                else:
+                    print(data_result, file=proc.stdin, flush=True)
                 updateViz(viz,data,response=bot_resp,result=data_result)#(Voor SHOOT -> RESULT command)
 
                 testEnd(data)
