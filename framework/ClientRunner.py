@@ -16,7 +16,7 @@ linebuffer = []
 SHELLMODE = True
 RECVCONST = 4096
 
-DEBUG = True
+DEBUG = False
 
 def cleanup():
     if not SHELLMODE and proc is not None:
