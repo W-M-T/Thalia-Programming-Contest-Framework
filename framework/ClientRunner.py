@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from subprocess import Popen, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT, DEVNULL
 import os
 import signal
 import socket
@@ -295,7 +295,7 @@ def readConfig():
             debug         = s[s.index("# WRITE BOT STDERR TO FILE:") + 1] == "1"
             runcommand    = s[s.index("# BOT RUNNING COMMAND:") + 1]
             (server,port) = s[s.index("# SERVER ADDRESS:") + 1].split(":")
-            return (teamname, viz, debug, runcommand,server,port)#teamname+str(random.randrange(99))
+            return (teamname+"("+str(random.randrange(99))+")", viz, debug, runcommand,server,port)
 
         except (ValueError, IndexError):
             print("[-] Config file could not be read")
