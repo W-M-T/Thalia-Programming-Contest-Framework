@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 
 
 incomingsocket = None
-LISTENPORT = 42000
+LISTENPORT = 42042
 RECVCONST = 4096
 viz = None
 

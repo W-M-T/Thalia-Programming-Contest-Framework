@@ -5,7 +5,7 @@ from threading import Thread
 import random
 import time
 
-from Visualiser import Visualiser
+
 
 RECVCONST = 4096
 TURNTIMEOUT      = 2.0
@@ -276,6 +276,9 @@ class GameRunner(Thread):
 
         self.turn = random.randint(0,1)
         self.end  = False
+
+        if viz is not None:
+            from Visualiser import Visualiser
 
 
     def turnClient(self):

@@ -8,7 +8,7 @@ replaceme
 1
 
 # SERVER ADDRESS:
-127.0.1.1:42000
+127.0.1.1:42042
 
 # BOT RUNNING COMMAND:
 ./../exampleBot/ExampleBot.py

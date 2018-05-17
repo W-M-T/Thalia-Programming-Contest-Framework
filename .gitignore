@@ -3,3 +3,4 @@ framework/pycache/
 echoJava/
 docs/
 framework/stderr.txt
+framework/Dockerfile
