@@ -9,6 +9,7 @@ replaceme
 
 # SERVER ADDRESS:
 zeeslag.thalia.nu:42042
+#localhost:42042
 
 # BOT RUNNING COMMAND:
 ./../exampleBot/ExampleBot.py

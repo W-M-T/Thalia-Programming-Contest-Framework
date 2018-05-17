@@ -28,6 +28,9 @@ atexit.register(cleanup)
 lobby = {}
 lobbyLock = Lock()
 
+spectators = {}
+#Not syncronized because this feature is a quick hack (fix later)
+
 
 
 def stripFormat(form,data):
@@ -92,8 +95,14 @@ class ConnHandler(Thread):
 
                 if other_alive:
                     print("Starting match in room \"{}\"".format(self.key))
+                    #Check if there is a spectator waiting (still refactor this)
+                    if self.key in spectators:
+                        spec = spectators[self.key]
+                        del(spectators[self.key])
+                    else:
+                        spec = None
                     #Start game runner thread
-                    gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},foundConn, viz = viz)#Do some test to find out
+                    gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},foundConn, viz = viz, spectator = spec)
                     gr.start()
                     #Delete this index
                     lobbyLock.acquire()
@@ -130,11 +139,21 @@ class ConnHandler(Thread):
         try:
             #Get client info
             self.connection.settimeout(2)
-            self.name = stripFormat("CLIENT NAME ", self.lbrecv())
-            self.key = stripFormat("CLIENT KEY ", self.lbrecv())
 
-            if self.name is None or self.key is None:
+            nameline = self.lbrecv()
+            name = stripFormat("CLIENT NAME ", nameline)
+            key = stripFormat("CLIENT KEY ", self.lbrecv())
+
+            maybeSpectator = stripFormat("SPECTATOR",nameline)
+            if maybeSpectator is not None and key is not None:
+                print("[*] Incoming spectator for room \"{}\"".format(key))
+                spectators[key] = self.connection
+                return
+
+            if name is None or key is None:
                 raise Exception("[-] Protocol not followed by {}:{}".format(*self.client))
+            self.name = name
+            self.key = key
             self.connection.settimeout(None)
             print("[*] Incoming connection from {}:{} ({}) for room \"{}\"".format(*self.client, self.name, self.key))
 

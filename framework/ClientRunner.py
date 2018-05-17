@@ -103,7 +103,6 @@ def testEnd(data):
 def becomeLink(viz):
     global proc, sock
     
-    end = False
     try:
 
         while True:
@@ -296,7 +295,7 @@ def readConfig():
             debug         = s[s.index("# WRITE BOT STDERR TO FILE:") + 1] == "1"
             runcommand    = s[s.index("# BOT RUNNING COMMAND:") + 1]
             (server,port) = s[s.index("# SERVER ADDRESS:") + 1].split(":")
-            return (teamname+str(random.randrange(99)), viz, debug, runcommand,server,port)
+            return (teamname, viz, debug, runcommand,server,port)#teamname+str(random.randrange(99))
 
         except (ValueError, IndexError):
             print("[-] Config file could not be read")

@@ -9,7 +9,7 @@ from Visualiser import Visualiser
 
 RECVCONST = 4096
 TURNTIMEOUT      = 2.0
-MINTURNTIME      = 1.0
+MINTURNTIME      = 0.5
 
 class Tile(Enum):
     Water  = 0
@@ -59,12 +59,13 @@ class GameEndException(Exception):
 
 class Board:
 
-    def __init__(self,dims, viz = None, own = True):
+    def __init__(self,dims, viz = None, spec = None, own = True):
         self.dims     = dims
         self.board    = [[Tile.Water for i in range(dims[0])] for j in range(dims[1])]
         self.shiplist = []
         self.shiphits = []
         self.viz      = viz
+        self.spec     = spec
         self.ownviz   = own
 
     def onBoard(self, coord):
@@ -79,6 +80,10 @@ class Board:
     def placeIsland(self, coord):
         if self.onBoard(coord) and self.get(coord).free:
             self.set(coord,Tile.Island)
+
+            #print("WEIRDEST BUG EVER") #UNCOMMENT THIS TO SEE A BLACK MAGIC BUG
+            informSpectator(self.spec, "change {} {} {}".format(self.ownviz,coord,"island"))
+            #print("AFTER")
             if self.viz is not None:
                 self.viz.syncUpdate(Visualiser.change,[self.ownviz,coord,self.viz.ISLAND])
             return True
@@ -105,6 +110,7 @@ class Board:
                 self.shiplist.append((start,end))
                 self.shiphits.append((Ship(shiplen),False,[(False,(start[0],y)) for y in range(bot,top + 1)]))
 
+                informSpectator(self.spec, "placeShip {} {} {}".format(self.ownviz,start,end))
                 if self.viz is not None:
                     self.viz.syncUpdate(Visualiser.placeShip,[self.ownviz,start,end])
 
@@ -120,6 +126,7 @@ class Board:
                 self.shiplist.append((start,end))
                 self.shiphits.append((Ship(shiplen),False,[(False,(x,start[1])) for x in range(left,right + 1)]))
 
+                informSpectator(self.spec, "placeShip {} {} {}".format(self.ownviz,start,end))
                 if self.viz is not None:
                     self.viz.syncUpdate(Visualiser.placeShip,[self.ownviz,start,end])
 
@@ -133,6 +140,7 @@ class Board:
         (hit,sunkship) = self.doHit(coord)
         #print(hit,sunkship)
 
+        informSpectator(self.spec,"change {} {} {}".format(self.ownviz,coord,"hit" if hit else "miss"))
         if self.viz is not None:
             img = self.viz.CROSS
             if hit:
@@ -209,6 +217,14 @@ def writeTo(client,data):
         print(e)
         return False
 
+def informSpectator(spec, text):
+    #print("spectator is",spec)
+    try:
+        if spec is not None and not spec == "None":#Ugly hack
+            spec.send((text+"\n").encode("utf-8"))
+    except Exception as e:
+        pass
+
 class connClosedException(Exception):
     pass
 
@@ -224,6 +240,7 @@ def readFrom(client):
         if len(bytedata) == 0:#Connection was closed
             raise connClosedException("Connection from {} was closed".format(client["name"]))
         data = bytedata.decode("utf-8").rstrip("\n").split("\n")
+        #print(data)
         #data = bytedata.rstrip("\n").split("\n")
         ret = data.pop(0).rstrip(" ")
         linebuffer.extend(data)
@@ -268,8 +285,8 @@ class GameRunner(Thread):
         self.clientA["linebuffer"] = []
         self.clientB["linebuffer"] = []
 
-        self.clientA["board"] = Board((10,10),viz = viz,own = True)
-        self.clientB["board"] = Board((10,10),viz = viz,own = False)
+        self.clientA["board"] = Board((10,10), viz = viz, spec = spectator, own = True)
+        self.clientB["board"] = Board((10,10), viz = viz, spec = spectator, own = False)
         
         self.clientA["socket"].settimeout(None)
         self.clientB["socket"].settimeout(None)
@@ -279,7 +296,6 @@ class GameRunner(Thread):
 
         self.spectator = spectator
             
-
 
     def turnClient(self):
         return [self.clientA,self.clientB][self.turn]
@@ -294,6 +310,8 @@ class GameRunner(Thread):
         raise GameEndException("{} was disqualified!! Reason: {}".format(self.turnClient()["name"],reason))
 
     def handleIsland(self,data):
+        #print("data {} enddata".format(data))
+        #print("HANDLING")
         maybeIsland = stripFormat("PLACE ISLAND ",data)
         if maybeIsland is not None:
             maybeCoord = parseCoord(maybeIsland)
@@ -415,6 +433,8 @@ class GameRunner(Thread):
         try:
             print(self.clientA["name"], "versus", self.clientB["name"])
 
+            informSpectator(self.spectator,"updateTitle True {}".format(self.clientA["name"]))
+            informSpectator(self.spectator,"updateTitle False {}".format(self.clientB["name"]))
             if self.clientA["board"].viz is not None:
                 self.clientA["board"].viz.syncUpdate(Visualiser.updateTitle, [self.clientA["name"],self.clientB["name"]])
 
@@ -433,6 +453,7 @@ class GameRunner(Thread):
         self.clientA["socket"].close()
         self.clientB["socket"].close()
 
+        informSpectator(self.spectator,"end")
         if self.clientA["board"].viz is not None:
             time.sleep(5)
             self.clientA["board"].viz.syncUpdate(Visualiser.resetBoth, [])

@@ -4,3 +4,4 @@ echoJava/
 docs/
 framework/stderr.txt
 framework/Dockerfile
+framework/Spectator.py
