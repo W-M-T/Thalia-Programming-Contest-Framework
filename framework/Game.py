@@ -5,7 +5,7 @@ from threading import Thread
 import random
 import time
 
-
+from Visualiser import Visualiser
 
 RECVCONST = 4096
 TURNTIMEOUT      = 2.0
@@ -260,7 +260,7 @@ class GameRunner(Thread):
 
 
     #teamname, socket, addr
-    def __init__(self, clientA, clientB, viz = None):
+    def __init__(self, clientA, clientB, viz = None, spectator = None):
         super(GameRunner, self).__init__()
         self.clientA = clientA
         self.clientB = clientB
@@ -277,8 +277,8 @@ class GameRunner(Thread):
         self.turn = random.randint(0,1)
         self.end  = False
 
-        if viz is not None:
-            from Visualiser import Visualiser
+        self.spectator = spectator
+            
 
 
     def turnClient(self):

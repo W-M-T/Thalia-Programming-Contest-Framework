@@ -97,7 +97,7 @@ class gameEnded(Exception):
 
 def testEnd(data):
     if data.find("GAME RESULT ") == 0:
-        print("GAME OVER")
+        print("GAME OVER:",data)
         raise gameEnded
 
 def becomeLink(viz):
