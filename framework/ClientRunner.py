@@ -100,7 +100,7 @@ def testEnd(data):
         print("GAME OVER")
         raise gameEnded
 
-def becomeLink(viz):#TODO end anywhere
+def becomeLink(viz):
     global proc, sock
     
     end = False
@@ -306,11 +306,12 @@ def work():
     global proc, sock, debugfile
 
     print("[+] Starting client")
-    (team,viz_enabled, debug_on, command,server,port) = readConfig()
+    (team, viz_enabled, debug_on, command, server, port) = readConfig()
     print(team)
 
     if debug_on:
         debugfile = open("./stderr.txt","w")
+        #Write initial line containing time
     proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
 
     print("[?] Enter room key:\n> ",end="")
@@ -322,7 +323,7 @@ def work():
 
     print("[+] Challenged by {}".format(otherteam))
 
-    #Move to battle start code
+    #Move to seperate function
     if viz_enabled:
         try:
             from Visualiser import Visualiser
@@ -347,44 +348,6 @@ def work():
         pass
 
     print("[*] Client ended")
-
-#only for debugging:
-def testVizUpdater():
-    from Visualiser import Visualiser
-    viz = Visualiser(2,True,False)
-    testLink(viz)
-
-def testLink(viz):
-  
-    end = False
-
-    while not end:
-        print("LOOPING")
-
-        #SERVER -> BOT
-        data = input().rstrip("\n")
-        updateViz(viz,data)#(Voor UPDATE command)
-
-        if data.find("GAME RESULT ") == 0:
-                print("GAME OVER")
-                end = True
-
-        flow = getDepth(data)
-
-        if flow >= 2:
-            #BOT -> SERVER
-            bot_resp = input().rstrip("\n")
-
-            updateViz(viz,data,response=bot_resp)#(Voor PLACE command)
-
-        if flow >= 3:
-            #SERVER -> BOT AGAIN
-            data_result = input().rstrip("\n")
-
-            updateViz(viz,data,response=bot_resp,result=data_result)#(Voor SHOOT -> RESULT command)
-
-            
-    print("Link stopped")
     
 
 def main():

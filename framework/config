@@ -11,7 +11,7 @@ replaceme
 127.0.1.1:42000
 
 # BOT RUNNING COMMAND:
-./ExampleBot.py
+./../exampleBot/ExampleBot.py
 
 # Example commands:
 # ./starterbot.py

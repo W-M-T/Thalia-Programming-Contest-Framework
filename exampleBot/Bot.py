@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 import sys
+sys.path.insert(0, "../framework")
 import re
 from enum import Enum,IntEnum
 import random, time
 from Game import Board, Ship, Tile
-from Visualiser import Visualiser
-
 
 class ShipSizes(IntEnum):
     Destroyer  = 2
@@ -121,7 +120,7 @@ class Bot():
         self.done = False
         while self.done != True:
             command = input()
-            time.sleep(self.turnDelay)
+            #time.sleep(self.turnDelay)
             self.handle_command(command)
 
 
