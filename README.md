@@ -17,5 +17,16 @@ The ships have the following properties:
 
 
 ## How to get started:
+We advise you to base your bot on one of these provided starter bots:
+
 - Java starter bot: [here](https://github.com/kliyer-ai/StarterBot)
 - Python starter bot: see the exampleBot directory
+
+You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
+
+In this directory you will also find a config file. By changing it you can configuer:
+- The name of your team
+- Whether to enable the clientside visualiser (sudo apt-get install python3-tk)
+- Whether to write the bot stderr to a file (you can use this to debug your bot)
+- Where to connect to the server (you probably won't need to change this)
+- What command to run to run your bot.
