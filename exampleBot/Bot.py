@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import sys
-sys.path.insert(0, "../framework")
+#sys.path.insert(0, "../framework")
 import re
 from enum import Enum,IntEnum
 import random, time
@@ -27,7 +27,6 @@ class Bot():
         self.ownBoard = Board((10,10),None,own = True)
         self.enemyBoard = Board((10,10),None,own = False)
         self.shipsToPlace = [[size, Ship(size).count] for size in Ship]
-        self.turnDelay = 0.1
         self.lastCoord = (0,0)
 
     def handle_result(self,text):
@@ -120,7 +119,6 @@ class Bot():
         self.done = False
         while self.done != True:
             command = input()
-            #time.sleep(self.turnDelay)
             self.handle_command(command)
 
 

@@ -6,7 +6,6 @@ from Bot import *
 class ExampleBot(Bot):
     def __init__(self):
         super().__init__()
-        self.turnDelay = 0.1
         self.placementIndex = 0  
         #placementIndex is used to choose an island and shot location. You may remove it if you do not use it.
 
