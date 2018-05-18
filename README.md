@@ -30,3 +30,8 @@ In this directory you will also find a config file. By changing it you can confi
 - Whether to write the bot stderr to a file (you can use this to debug your bot)
 - Where to connect to the server (you probably won't need to change this)
 - What command to run to run your bot.
+
+
+If you have any questions, you can approach Ward, Nick or Yannick.
+
+Have fun!
