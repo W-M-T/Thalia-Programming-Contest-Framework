@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 #sudo apt-get install python3-tk
 from tkinter import *
@@ -8,6 +8,7 @@ from queue import Queue
 
 SIZE = 10
 TITLE = "Thalia & Cognac Battleships"
+USE_GIF = True
 
 def importImg(path, subs):
     return PhotoImage(file = path).subsample(subs)
@@ -58,6 +59,7 @@ class Visualiser():
 
 
     def __init__(self, subs, show_own, show_other,is_main = True):
+        global USE_GIF
         self.updateQueue = Queue()
         self.is_main = is_main
 
@@ -70,23 +72,23 @@ class Visualiser():
         self.other.config(background = "#FFFFFF", padx=10, pady=10)
 
         #https://github.com/twitter/twemoji
-        self.WATER          = importImg('img/80x80/wave.png', subs)
-        self.ISLAND         = importImg('img/80x80/mountain.png', subs)
-        self.BOOM           = importImg('img/80x80/boom.png', subs)
-        self.SHIP_HIT_TOP   = importImg('img/80x80/red_uparrow.png', subs)
-        self.SHIP_HIT_BOT   = importImg('img/80x80/red_downarrow.png', subs)
-        self.SHIP_HIT_MID   = importImg('img/80x80/red_square.png', subs)
-        self.SHIP_HIT_LEFT  = importImg('img/80x80/red_leftarrow.png', subs)
-        self.SHIP_HIT_RIGHT = importImg('img/80x80/red_rightarrow.png', subs)
-        self.SHIP_TOP       = importImg('img/80x80/uparrow.png', subs)
-        self.SHIP_BOT       = importImg('img/80x80/downarrow.png', subs)
-        self.SHIP_MID       = importImg('img/80x80/square.png', subs)
-        self.SHIP_LEFT      = importImg('img/80x80/leftarrow.png', subs)
-        self.SHIP_RIGHT     = importImg('img/80x80/rightarrow.png', subs)
-        self.CROSS          = importImg('img/80x80/cross.png', subs)
-        self.QUESTIONMARK   = importImg('img/80x80/questionmark.png', subs)
-        self.TROPHY         = importImg('img/160x160/trophy.png', subs)
-        self.SKULL          = importImg('img/160x160/skull.png', subs)
+        self.WATER          = importImg('img/80x80/wave.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.ISLAND         = importImg('img/80x80/mountain.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.BOOM           = importImg('img/80x80/boom.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_HIT_TOP   = importImg('img/80x80/red_uparrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_HIT_BOT   = importImg('img/80x80/red_downarrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_HIT_MID   = importImg('img/80x80/red_square.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_HIT_LEFT  = importImg('img/80x80/red_leftarrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_HIT_RIGHT = importImg('img/80x80/red_rightarrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_TOP       = importImg('img/80x80/uparrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_BOT       = importImg('img/80x80/downarrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_MID       = importImg('img/80x80/square.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_LEFT      = importImg('img/80x80/leftarrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SHIP_RIGHT     = importImg('img/80x80/rightarrow.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.CROSS          = importImg('img/80x80/cross.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.QUESTIONMARK   = importImg('img/80x80/questionmark.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.TROPHY         = importImg('img/160x160/trophy.png{}'.format('.gif' if USE_GIF else ''), subs)
+        self.SKULL          = importImg('img/160x160/skull.png{}'.format('.gif' if USE_GIF else ''), subs)
 
         self.own_labeltable   = []
         self.show_own = show_own
