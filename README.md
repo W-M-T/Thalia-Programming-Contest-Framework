@@ -24,7 +24,7 @@ We advise you to base your bot on one of these provided starter bots:
 
 You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
 
-In this directory you will also find a config file. By changing it you can configuer:
+In this directory you will also find a config file. By changing it you can configure:
 - The name of your team
 - Whether to enable the clientside visualiser (sudo apt-get install python3-tk)
 - Whether to write the bot stderr to a file (you can use this to debug your bot)
