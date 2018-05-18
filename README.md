@@ -25,6 +25,7 @@ We advise you to base your bot on one of these provided starter bots:
 - Python starter bot: see the exampleBot directory
 
 You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
+Don't forget to start the server first.
 
 In this directory you will also find a config file. By changing it you can configure:
 - The name of your team
