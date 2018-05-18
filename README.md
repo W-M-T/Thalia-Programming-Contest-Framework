@@ -15,5 +15,7 @@ The ships have the following properties:
 | DESTROYER | 2 | 4
 - Shooting eachothers boards.
 
+
+## How to get started:
 - Java starter bot: [here](https://github.com/kliyer-ai/StarterBot)
 - Python starter bot: see the exampleBot directory
