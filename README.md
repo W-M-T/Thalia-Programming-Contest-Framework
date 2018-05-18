@@ -13,6 +13,8 @@ The ships have the following properties:
 | BATTLESHIP | 4 | 2
 | CRUISER | 3 | 3
 | DESTROYER | 2 | 4
+
+The board is 10x10 and ships ARE allowed to touch.
 - Shooting eachothers boards.
 
 
