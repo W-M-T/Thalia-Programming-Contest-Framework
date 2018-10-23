@@ -2,6 +2,12 @@ __pycache__/
 framework/pycache/
 echoJava/
 docs/
+docs2/
+img/
+indev/
 framework/stderr.txt
 framework/Dockerfile
 framework/Spectator.py
+framework/Spectator2.py
+Spectator_experimental.py
+Spectator_old_old.py
