@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import socket as s
 from Game import GameRunner
@@ -8,13 +8,13 @@ from enum import IntEnum
 from time import sleep
 from Visualiser import Visualiser
 from argparse import ArgumentParser
+from Util import lbRecv, stripFormat, sockSend
 
 
 incomingsocket = None
 LISTENPORT = 42042
-RECVCONST = 4096
 viz = None
-
+RECVCONST = 4096
 
 def cleanup():
     if incomingsocket is not None:
@@ -32,17 +32,10 @@ spectators = {}
 #Not syncronized because this feature is a quick hack (fix later)
 
 
-
-def stripFormat(form,data):
-    if data.find(form) == 0:
-        return data.replace(form,"",1)
-    else:
-        return None
-
 def poll(connection):
     try:
         connection.settimeout(2)
-        connection.send(("PING\n").encode("utf-8"))
+        sockSend(connection, "PING")
         #Do nonbuffered receive
         bytedata = connection.recv(RECVCONST)
         if len(bytedata) == 0:#Connection was closed
@@ -50,7 +43,7 @@ def poll(connection):
         connection.settimeout(None)
         return True
     except Exception as e:
-        print("!!!!!",e)
+        print("!!!!!",e.__class__.__name__, e)
         connection.settimeout(None)
         return False
 
@@ -62,20 +55,6 @@ class ConnHandler(Thread):
         self.connection = connection
         self.client = client
         self.linebuffer = []
-
-
-    def lbrecv(self):#Line buffered receive
-        #unhandled case is if the socket receive ends in the middle of a message, wich should only happen if there are more than 4096 bytes in the receive buffer
-        if self.linebuffer:
-            return self.linebuffer.pop(0)
-        else:
-            bytedata = self.connection.recv(RECVCONST)
-            if len(bytedata) == 0:#Connection was closed
-                raise s.timeout
-            data = bytedata.decode("utf-8").rstrip("\n").split("\n")#maybe catch the possible decode error?
-            ret = data.pop(0)
-            self.linebuffer.extend(data)
-            return ret
 
     def handleLobby(self):
         global viz
@@ -102,7 +81,7 @@ class ConnHandler(Thread):
                     else:
                         spec = None
                     #Start game runner thread
-                    gr = GameRunner({"name":self.name,"socket":self.connection,"addr":self.client},foundConn, viz = viz, spectator = spec)
+                    gr = GameRunner([foundConn,{"name":self.name,"socket":self.connection,"addr":self.client}], viz = viz, spectator = spec)
                     gr.start()
                     #Delete this index
                     lobbyLock.acquire()
@@ -140,9 +119,9 @@ class ConnHandler(Thread):
             #Get client info
             self.connection.settimeout(2)
 
-            nameline = self.lbrecv()
+            nameline = lbRecv(self.connection,self.linebuffer)
             name = stripFormat("CLIENT NAME ", nameline)
-            key = stripFormat("CLIENT KEY ", self.lbrecv())
+            key = stripFormat("CLIENT KEY ", lbRecv(self.connection,self.linebuffer))
 
             maybeSpectator = stripFormat("SPECTATOR",nameline)
             if maybeSpectator is not None and key is not None:
