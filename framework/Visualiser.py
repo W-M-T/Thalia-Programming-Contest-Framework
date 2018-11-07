@@ -36,7 +36,7 @@ def makeImgTable(dict):
     #Dict of NAME:filepath
     temp = {}
     for k, v in dict.items():
-        temp[k] = importImg(v)
+        temp[k] = importImg(v).convert_alpha()
     return temp
 
 
@@ -58,8 +58,14 @@ def getFieldIndent(font):
     coordTextSize = font.size(str(SIZE-1))
     return (SCREEN_MARGIN + coordTextSize[0], SCREEN_MARGIN + coordTextSize[1])
 
-def getScreenDims(font):
+def getIndentedFieldDims(font):
     return tuple(map(sum,zip(getFieldDims(),getFieldIndent(font))))
+
+def getInfoDims(font):
+    return (0,60)
+
+def getScreenDims(font):
+    return tuple(map(sum,zip(getFieldDims(),getFieldIndent(font),getInfoDims(font))))
 
 def coordToSurfacePos(coord):
         return (TD_SIZE[0] + FIELD_MARGIN + (coord[0]-1)*(TD_MARGIN+TD_SIZE[0]), TD_SIZE[1] + FIELD_MARGIN + (coord[1]-1)*(TD_MARGIN+TD_SIZE[1]))
@@ -131,11 +137,8 @@ class Visualiser():
         self.drawTable[9][9] = self.img['SHIELD']
 
     def resetField(self):   
-        for y in range(SIZE):
-            for x in range(SIZE):
-                #gridcoord = coordToGrid(x,y)
-                #self.drawTable[gridcoord[0]][gridcoord[1]] = self.img['WATER']
-                self.drawTable[x][y] = self.img['CROSS']
+        self.drawTable = []
+        self.initTable()
 
 
     def __init__(self, is_main, scaling):
@@ -150,13 +153,14 @@ class Visualiser():
         self.is_main = is_main
 
         self.updateQueue = Queue()
+        
+        pygame.display.set_caption(TITLE)
+        pygame.display.set_icon(pygame.image.load("img/fire_1f525.png"))
+
         #self.font = pygame.font.SysFont([], TEXT_HEIGHT)
         self.font = pygame.font.Font(pygame.font.get_default_font(), TEXT_HEIGHT)
-
         self.screen = pygame.display.set_mode(getScreenDims(self.font))
 
-        pygame.display.set_caption(TITLE)
-        pygame.display.set_icon(importImg("img/fire_1f525.png"))
         pygame.display.update()
         self.screen.fill(pygame.Color("#FFFFFF"))
         pygame.display.flip()
@@ -191,9 +195,11 @@ class Visualiser():
 
         self.drawFloats = {}
         
+        '''
         self.drawFloats['p1'] = (self.img['CHAR1'],   (6,5))
         self.drawFloats['p2'] = (self.img['CHAR2'],  (6,10))
         self.drawFloats['p3'] = (self.img['CHAR3'],    (6,9))
+        '''
         
         self.drawTable  = []
         self.fieldSurface = pygame.Surface(getFieldDims())
@@ -221,6 +227,8 @@ class Visualiser():
 
         self.drawLabels()
 
+        pname = self.font.render("ROBOHENK", True, (10,)*3)
+        self.screen.blit(pname, (0,getIndentedFieldDims(self.font)[1]))
         pygame.display.flip()
 
 
@@ -351,6 +359,11 @@ class Visualiser():
             time.sleep(1/fps)
     '''
 
+    '''
+    def wait(self, sec):
+        time.wait(sec)
+    '''
+
 
     def doUIThread(self):
         while True:
@@ -364,6 +377,10 @@ class Visualiser():
         else:
             #print("Doing",func,args)
             func(self,*args)
+
+
+#TODO it would be nice to not have to check if a visualiser is None in GameRunner and Server wrp to calling the update methods.
+#Define a wrapper for Visualiser that allows this while still allowing things like "viz.img["WATER"]". Maybe use a property decorator?
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ RandPostfixNr     = True
 
 
 [VISUALISER]
-EnableVisualiser  = False
+EnableVisualiser  = True
 
 
 [BOT]
