@@ -1,0 +1,75 @@
+Constants:
+Field dimensions 15 x 15
+Edge of the field is always water
+
+================================
+Server -> Client
+
+servercomm =
+CONFIG configinfo
+START GAME
+REQUEST MOVE
+UPDATE updateinfo
+result
+
+
+configinfo =
+WATER ROUND int
+TILE coord tileitem
+PLAYER PLACE pID coord
+PLAYER LIVES pID int
+PLAYER NAME pID name
+YOU pID
+
+
+updateinfo =
+PLAYER LOC pID coord
+PLAYER STATUS pID statusinfo
+BOMB PLACED coord
+BOMB EXPLODED coord
+TILE GONE coord
+
+
+result =
+YOU WON
+YOU LOST [(DISQUALIFED: reason)]
+
+statusinfo =
+DEAD [(DROWNED)]
+HIT
+
+
+tileitem =
+WALL
+TREE
+
+
+pID =
+1..4
+
+
+coord =
+(int,int)
+
+================================
+Client -> Server
+
+clientcomm =
+BOMBWALK dir
+WALK dir
+
+dir =
+UP
+LEFT
+RIGHT
+DOWN
+STAY
+
+================================
+The (base) bot's state machine would look as follows:
+Start in the config phase.
+Accept all CONFIG messages until START GAME. The bot responds to none of these.
+
+The bot then enters the play phase.
+When the bot receives a REQUEST MOVE, respond with a clientcomm.
+Otherwise, accept UPDATE and result messages without responding.
