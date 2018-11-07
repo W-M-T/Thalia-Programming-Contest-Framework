@@ -61,6 +61,7 @@ def waitForChallenge():
     while True:
         
         s = lbRecv(sock, linebuffer)
+        print(s)
         if s.find("PING") == 0:
             sayToServer("PONG")
             continue
@@ -93,7 +94,7 @@ def becomeLink(viz):
                 print(data)
             else:
                 print(data, file=proc.stdin, flush=True)
-            updateViz(viz,data)#(Voor UPDATE command)
+            updateViz(viz,data)
 
             testEnd(data)
 
@@ -104,7 +105,7 @@ def becomeLink(viz):
                 bot_resp = input() if DEBUG else proc.stdout.readline().rstrip("\n")
                 #print(bot_resp)
                 sayToServer(bot_resp)
-                updateViz(viz,data,response=bot_resp)#(Voor PLACE command)
+                updateViz(viz,data,response=bot_resp)
 
                 testEnd(data)
 
@@ -115,7 +116,7 @@ def becomeLink(viz):
                     print(data_result)
                 else:
                     print(data_result, file=proc.stdin, flush=True)
-                updateViz(viz,data,response=bot_resp,result=data_result)#(Voor SHOOT -> RESULT command)
+                updateViz(viz,data,response=bot_resp,result=data_result)
 
                 testEnd(data)
 
@@ -187,8 +188,8 @@ def work():
     if viz_enabled:
         try:
             from Visualiser import Visualiser
-            viz = Visualiser(2,True,False)
-            viz.updateTitle("You ({})".format(team),"Other ({})".format(otherteam))
+            viz = Visualiser(True,1)
+            #viz.updateTitle("You ({})".format(team),"Other ({})".format(otherteam))
 
             print("[+] UI running")
         except Exception as e:

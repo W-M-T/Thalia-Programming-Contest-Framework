@@ -3,7 +3,6 @@
 import socket as s
 from Game import GameRunner
 from threading import Thread, Lock
-from threading import enumerate
 from enum import IntEnum
 from time import sleep
 from Visualiser import Visualiser
@@ -25,12 +24,23 @@ import atexit
 atexit.register(cleanup)
 
 
+lobby_size = 2
+
 lobby = {}
 lobbyLock = Lock()
 
 spectators = {}
-#Not syncronized because this feature is a quick hack (fix later)
+#Not syncronized because this feature is a quick hack (fix later). Not necessary to fix when there is just one spectator.
 
+def poll_mult(foundlobby):#TODO only poll a lobby when the amount of found connections is such that a game would start if everyone were alive
+    live = []
+    dead = []
+    for u in foundlobby:#Currently sequential. Would be faster in parallel.
+        if poll(u["socket"]):
+            live.append(u)
+        else:
+            dead.append(u)
+    return (live,dead)
 
 def poll(connection):
     try:
@@ -68,11 +78,11 @@ class ConnHandler(Thread):
             lobbyLock.acquire()
             if self.key in lobby:
                 #Lobby room not empty
-                (foundConn, foundLock) = lobby[self.key]
+                (foundConns, foundLock) = lobby[self.key]
                 lobbyLock.release()#Now we know that the current index cannot be removed/modified while we are working, because we have the index lock
-                other_alive = poll(foundConn["socket"])
+                (alives_lobby,deads_lobby) = poll_mult(foundConns)
 
-                if other_alive:
+                if len(alives_lobby)+1 == lobby_size:#Full lobby, time to start
                     print("Starting match in room \"{}\"".format(self.key))
                     #Check if there is a spectator waiting (still refactor this)
                     if self.key in spectators:
@@ -81,19 +91,24 @@ class ConnHandler(Thread):
                     else:
                         spec = None
                     #Start game runner thread
-                    gr = GameRunner([foundConn,{"name":self.name,"socket":self.connection,"addr":self.client}], viz = viz, spectator = spec)
+                    gr = GameRunner([*foundConns,{"name":self.name,"socket":self.connection,"addr":self.client}], viz = viz, spectator = spec)
                     gr.start()
                     #Delete this index
                     lobbyLock.acquire()
                     del(lobby[self.key])#We know that it still exists, because to delete it you need the index lock
                     lobbyLock.release()
                     indexLock.release()#Let the other connhandlers for this index work
-                else:
-                    print("Unzombified room \"{}\" with {}:{} ({})".format(self.key, *self.client, self.name))
-                    #Replace the dead connection
-                    foundConn["socket"].close()
+                else:#Add this user to the lobby
+                    print("Added to room \"{}\" for {}:{} ({})".format(self.key, *self.client, self.name))
+                    print("Room \"{}\" now contains {}/{}:\n\t{}".format(self.key,
+                                                                        len(alives_lobby)+1,
+                                                                        lobby_size,
+                                                                        "\n\t".join([self.name,*list(map(lambda x: x["name"], alives_lobby))])))
+                    #Close dead/unresponsive connections
+                    for dead in deads_lobby:
+                        dead["socket"].close()
                     lobbyLock.acquire()
-                    lobby[self.key] = ({"name":self.name,"socket":self.connection,"addr":self.client},indexLock)
+                    lobby[self.key] = ([*alives_lobby,{"name":self.name,"socket":self.connection,"addr":self.client}],indexLock)
                     lobbyLock.release()
                     indexLock.release()
 
@@ -101,7 +116,7 @@ class ConnHandler(Thread):
                 print("Recreated room \"{}\" for {}:{} ({})".format(self.key, *self.client, self.name))
                 #Match was started in the meantime + lobby room is empty
                 #Add key, copy index lock (so new threads enter the same line)
-                lobby[self.key] = ({"name":self.name,"socket":self.connection,"addr":self.client},indexLock)
+                lobby[self.key] = ([{"name":self.name,"socket":self.connection,"addr":self.client}],indexLock)
                 lobbyLock.release()
                 #release index lock to free any threads later in line
                 indexLock.release()
@@ -109,8 +124,9 @@ class ConnHandler(Thread):
 
         else:
             #Add key, create index lock and end
+            #Maybe handle the case for lobby sizes of 1?
             print("Creating new room \"{}\" for {}:{} ({})".format(self.key, *self.client, self.name))
-            lobby[self.key] = ({"name":self.name,"socket":self.connection,"addr":self.client},Lock())
+            lobby[self.key] = ([{"name":self.name,"socket":self.connection,"addr":self.client}],Lock())
             lobbyLock.release()
 
 
@@ -164,6 +180,10 @@ class Server(Thread):#Handle the keyboardinterrupt from the main thread still
                 handler = ConnHandler(connection, client)
                 handler.start()
 
+                #Cull references to connection sockets so connections die when the gamerunner dies
+                handler = None
+                connection = None
+
         except KeyboardInterrupt:#Only ever happens if serve is called from the main thread
             #print(enumerate())
             incomingsocket.close()
@@ -175,11 +195,14 @@ class Server(Thread):#Handle the keyboardinterrupt from the main thread still
         Server.serve()
 
 def main():
-    global incomingsocket, viz
+    global incomingsocket, viz, lobby_size
     
     parser = ArgumentParser(description="Programming contest framework")
     parser.add_argument("-v", "--visual", action="store_true", help="Enable visualiser")
+    parser.add_argument("-l", metavar="SIZE", default=2, type=int, help="Lobby size")
     args = parser.parse_args()
+
+    lobby_size = args.l
 
     server = Server(True)
     #Server.serve()
@@ -187,8 +210,8 @@ def main():
 
     try:
         if args.visual:
-            viz = Visualiser(1,True,True, is_main=False)
-            viz.doUIThread()#Necessary because TKinter needs the main thread in order not to complain
+            viz = Visualiser(True, 1)
+            viz.doUIThread()
         else:
             server.join()
     except KeyboardInterrupt:

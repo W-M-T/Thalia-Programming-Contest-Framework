@@ -91,6 +91,8 @@ def writeTo(client,data):
 def informSpectator(spec, text):
     #print("spectator is",spec)
     try:
+        if spec is "None":
+            print("!!!None string found!!!")
         if spec is not None and not spec == "None":#Ugly hack
             sockSend(spec, text)
     except Exception as e:
@@ -121,7 +123,7 @@ class GameRunner(Thread):
             client["linebuffer"] = []
             #client["socket"].settimeout(None)
 
-        self.BOARDSIZE = (15,15)
+        self.BOARDSIZE = (15,)*2
         self.board = Board(self.BOARDSIZE)
         self.board.fillBoard1()
         self.board.placePlayers(len(clients))
@@ -293,6 +295,8 @@ class GameRunner(Thread):
             #    self.viz.syncUpdate(Visualiser.updateTitle, [self.clientA["name"],self.clientB["name"]])
 
             #combinations(self.clients, len(self.clients) - 1)
+            for client in self.clients:
+                writeTo(client,"CHALLENGED BY {}".format("a bunch of others"))
             #writeTo(self.clientA,"CHALLENGED BY {}".format(self.clientB["name"]))
             #writeTo(self.clientB,"CHALLENGED BY {}".format(self.clientA["name"]))
 
