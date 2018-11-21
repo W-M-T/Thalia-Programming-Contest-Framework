@@ -1,46 +1,29 @@
 #!/usr/bin/python3
 
 import sys
-#sys.path.insert(0, "../framework")
 import re
-from enum import Enum,IntEnum
-import random, time
-from Game import Board, Ship, Tile
-
-class ShipSizes(IntEnum):
-    Destroyer  = 2
-    Cruiser    = 3
-    Battleship = 4
-    Carrier    = 5
+from framework.Game import Board, Tile
 
 
-class ShipAmounts(IntEnum):
-    Destroyer  = 4
-    Cruiser    = 3
-    Battleship = 2
-    Carrier    = 1
-
-
-class Bot():
+class Bot:
     def __init__(self):
         """Initialize instance variables."""
-        self.ownBoard = Board((10,10),None,own = True)
-        self.enemyBoard = Board((10,10),None,own = False)
-        self.shipsToPlace = [[size, Ship(size).count] for size in Ship]
-        self.lastCoord = (0,0)
+        self.ownBoard = Board((15, 15))
+        self.enemyBoard = Board((15, 15))
+        self.lastCoord = (0, 0)
 
-    def handle_result(self,text):
+    def handle_result(self, text):
         """Handle the server's result message."""
         if text.find("RESULT HIT") != -1:
-            self.enemyBoard.set(self.lastCoord,Tile.Ship)
+            self.enemyBoard.set(self.lastCoord, Tile.Ship)
 
-    def handle_update(self,text):
+    def handle_update(self, text):
         """Handle the server's update message."""
         if text.find("RESULT GOTISLAND"):
             tokens = text.strip().split()
-            coord = (int(re.sub("\D","",tokens[2])),
-                     int(re.sub("\D","",tokens[3])))
-            self.ownBoard.set(coord,Tile.Island) 
+            coord = (int(re.sub("\D", "", tokens[2])),
+                     int(re.sub("\D", "", tokens[3])))
+            self.ownBoard.set(coord, Tile.Island)
 
     def handle_command(self, text):
         """Handle the server's message."""
@@ -64,7 +47,8 @@ class Bot():
 
     def choose_ship_location(self):
         """Return a location where a ship should be placed."""
-        raise NotImplementedError("You need to implement your own choose_ship_location method.")
+        raise NotImplementedError(
+            "You need to implement your own choose_ship_location method.")
 
     def choose_ship_size(self):
         """"Return a ship size that can be placed on the board."""
@@ -78,12 +62,12 @@ class Bot():
     def choose_island_location(self):
         """Return the next island's location."""
         self.placementIndex += 1
-        return (int(self.placementIndex/10),self.placementIndex%10)
+        return (int(self.placementIndex / 10), self.placementIndex % 10)
 
     def choose_shot_location(self):
         """Return the next shot's location."""
         self.placementIndex += 1
-        return (int(self.placementIndex/10),self.placementIndex%10)
+        return (int(self.placementIndex / 10), self.placementIndex % 10)
 
     @staticmethod
     def formatCoord(coord):
@@ -94,11 +78,11 @@ class Bot():
         """Print a command to stdout with the next ship's desired coordinates."""
         success = self.ownBoard.placeShip(start, end)
         if not success[0]:
-            raise Exception("Illegal ship placement: {0}.",success[1])
+            raise Exception("Illegal ship placement: {0}.", success[1])
         start = "(" + str(start[0]) + "," + str(start[1]) + ")"
         end = "(" + str(end[0]) + "," + str(end[1]) + ")"
-        print("PLACE SHIP",start,end)
-        sys.stdout.flush()#Nodig?
+        print("PLACE SHIP", start, end)
+        sys.stdout.flush()  # Nodig?
 
     def place_island(self, coord):
         """Print a command to stdout with the next island's desired coordinates."""
@@ -106,7 +90,7 @@ class Bot():
         if not success:
             raise Exception("Illegal island placement.")
         coord = Bot.formatCoord(coord)
-        print("PLACE ISLAND",coord)
+        print("PLACE ISLAND", coord)
 
     def shoot(self, coord):
         """Print a command to stdout with the next shot's desired coordinates."""
