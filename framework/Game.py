@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
-from enum import Enum, IntEnum
+from enum import Enum
 from threading import Thread
 import random
 import time
-from Util import lbRecv, stripFormat, parseCoord, sockSend
-from itertools import combinations
+from .Util import lbRecv, sockSend
 
-from Visualiser import Visualiser
+from .Visualiser import Visualiser
 
 TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5
@@ -51,6 +50,7 @@ class Board:
                     self.board[x][y] = Tile.Mountain
                 elif x % 2 == 1 and y % 2 == 0 or x % 2 == 0 and y % 2 == 1:
                     self.board[x][y] = Tile.Tree
+
         self.board[2][1] = Tile.Empty
         self.board[1][2] = Tile.Empty
         self.board[self.dims[0]-3][1] = Tile.Empty
@@ -107,7 +107,6 @@ class Board:
         (x,y) = coord
         return self.board[x][y] == Empty and not isBombHere(coord)
 
-
     def onBoard(self, coord):
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
 
@@ -116,6 +115,9 @@ class Board:
 
     def set(self, coord, val):
         self.board[coord[0]][coord[1]] = val
+
+    def is_valid_move(self, coord):
+        return self.get(coord) == Tile.Empty
 
     def gameover(self):
         return livePlayerCount <= 1
