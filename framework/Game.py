@@ -43,6 +43,7 @@ class Board:
                     self.board[x][y] = Tile.Mountain
                 elif x % 2 == 1 and y % 2 == 0 or x % 2 == 0 and y % 2 == 1:
                     self.board[x][y] = Tile.Tree
+
         self.board[2][1] = Tile.Empty
         self.board[1][2] = Tile.Empty
         self.board[self.dims[0]-3][1] = Tile.Empty
@@ -60,7 +61,6 @@ class Board:
         if playercount == 4:
             self.players["p4"]  = {"lives": 2, "pos": (1,self.dims[1]-2)}
 
-
     def onBoard(self, coord):
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
 
@@ -69,6 +69,9 @@ class Board:
 
     def set(self, coord, val):
         self.board[coord[0]][coord[1]] = val
+
+    def is_valid_move(self, coord):
+        return self.get(coord) == Tile.Empty
 
     def gameover(self):
         pass
