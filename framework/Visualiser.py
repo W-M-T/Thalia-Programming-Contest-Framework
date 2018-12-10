@@ -194,6 +194,7 @@ class Visualiser():
 
 
         self.drawFloats = {}
+        self.drawBombs = []
         
         '''
         self.drawFloats['p1'] = (self.img['CHAR1'],   (6,5))
@@ -227,7 +228,7 @@ class Visualiser():
 
         self.drawLabels()
 
-        pname = self.font.render("ROBOHENK", True, (10,)*3)
+        pname = self.font.render("_", True, (10,)*3)
         self.screen.blit(pname, (0,getIndentedFieldDims(self.font)[1]))
         pygame.display.flip()
 
@@ -278,6 +279,10 @@ class Visualiser():
         #self.fieldZoomSurface.blit(self.fieldSurface, (0,0), newRect)
         #pygame.transform.smoothscale(self.fieldZoomSurface,dims)
         #self.screen.blit(self.fieldZoomSurface,(0,0))
+        for (primed, coord) in self.drawBombs:
+            self.fieldSurface.blit(self.img['BOMB'] if not primed else self.img['BLOWUP'], coordToSurfacePos(coord))
+
+
         for key, agent in self.drawFloats.items():
             image = agent[0]
             coord = agent[1]
@@ -285,6 +290,15 @@ class Visualiser():
 
     def addFloat(self, name, coord, img):
         self.drawFloats[name] = (img, coord)
+
+    def addBomb(self, coord):
+        self.drawBombs.append((False, coord))
+
+    def primeBomb(self, coord):
+        self.drawBombs = list(map(lambda bomb: (True, bomb[1]) if bomb[1] == coord else bomb, self.drawBombs))
+
+    def removeBomb(self, coord):
+        self.drawBombs = list(filter(lambda bomb: bomb[1] != coord, self.drawBombs))
 
     def removeFloat(self, name):
         if name in self.drawFloats:
@@ -387,13 +401,14 @@ if __name__ == "__main__":
     v = Visualiser(True,1)
     #v.change((3,3),v.img['ISLAND'])
     #v.showResult(True,None)
-
     import time
     time.sleep(2)
+    '''
     v.animateWalk({'p1':(6,4),'p2':(7,10)})
     v.animateWalk({'p1':(7,4),'p2':(8,10)})
     v.animateWalk({'p1':(7,5),'p2':(8,9)})
     v.animateWalk({'p1':(8,5),'p2':(8,8)})
+    '''
     time.sleep(2)
     
     

@@ -12,6 +12,7 @@ from Visualiser import Visualiser
 TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5
 
+
 class Tile(Enum):
     Water       = 0
     Mountain    = 1
@@ -21,11 +22,17 @@ class Tile(Enum):
     @property
     def unbreakable(self):
         return self == Tile.Water or self == Tile.Mountain
-    
 
+class Dir(Enum):
+    UP      = (0, -1)
+    LEFT    = (-1, 0)
+    DOWN    = (0, 1)
+    RIGHT   = (1, 0)
+    
 
 class GameEndException(Exception):
     pass
+
 
 class Board:
 
@@ -33,7 +40,7 @@ class Board:
         self.dims    = dims
         self.board   = [[Tile.Empty for i in range(dims[0])] for j in range(dims[1])]
         self.bombs   = []#Lijst van dicts met pos en timer
-        self.players = {}#dict van names naar pos en lives
+        self.players = {}#dict van pids naar pos en lives
 
     def fillBoard1(self):
         for y in range(self.dims[1]):
@@ -53,13 +60,52 @@ class Board:
         self.board[1][self.dims[1]-3] = Tile.Empty
         self.board[2][self.dims[1]-2] = Tile.Empty
 
-    def placePlayers(self, playercount):
-        self.players["p1"]      = {"lives": 2, "pos": (1,1)}
-        self.players["p2"]      = {"lives": 2, "pos": (self.dims[0]-2,self.dims[1]-2)}
+    def placePlayers(self, playercount, lives):
+        pos_options = [
+                        (1,1),
+                        (self.dims[0]-2,self.dims[1]-2),
+                        (self.dims[0]-2,1),
+                        (1,self.dims[1]-2)
+                        ]
+
+        random.shuffle(pos_options)
+        self.players["p1"]      = {"lives": lives, "pos": pos_options[0]}
+        self.players["p2"]      = {"lives": lives, "pos": pos_options[1]}
         if playercount >= 3:
-            self.players["p3"]  = {"lives": 2, "pos": (self.dims[0]-2,1)}
+            self.players["p3"]  = {"lives": lives, "pos": pos_options[2]}
         if playercount == 4:
-            self.players["p4"]  = {"lives": 2, "pos": (1,self.dims[1]-2)}
+            self.players["p4"]  = {"lives": lives, "pos": pos_options[3]}
+
+    def burnTile(self, coord):
+        (x,y) = coord
+        if board[x][y] == Tile.TREE:
+            board[x][y] = Tile.Empty
+
+        #Kill player
+
+    def getExplodeTiles(self, coord):
+        #Only + tiles
+        #Other function for recursive effect
+        pass
+
+    def isBombHere(self, coord):
+        return any(lambda bomb: bomb["pos"] == coord)
+
+    def getBombHere(self, coord):
+        bombsHere = list(filter(lambda bomb: bomb["pos"] == coord))
+        if not bombsHere:
+            return None
+        else:
+            return bombsHere[0]
+
+    def getPlayersHere(self, coord):
+        #Return players here
+        pass
+
+
+    def isWalkable(self, coord):
+        (x,y) = coord
+        return self.board[x][y] == Empty and not isBombHere(coord)
 
 
     def onBoard(self, coord):
@@ -72,7 +118,7 @@ class Board:
         self.board[coord[0]][coord[1]] = val
 
     def gameover(self):
-        pass
+        return livePlayerCount <= 1
 
     def livePlayerCount(self):
         return len(list(filter(lambda x: x is not None, self.players)))
@@ -105,8 +151,6 @@ def readFrom(client):
     return lbRecv(client["socket"], client["linebuffer"])
 
 
-
-
 class GameRunner(Thread):  
     #implement timeouts
 
@@ -125,8 +169,8 @@ class GameRunner(Thread):
 
         self.BOARDSIZE = (15,)*2
         self.board = Board(self.BOARDSIZE)
-        self.board.fillBoard1()
-        self.board.placePlayers(len(clients))
+        #self.board.fillBoard1()
+        self.board.placePlayers(len(clients),2)
         if viz is not None:
             self.updateMapViz()
             self.setPlayersViz()
@@ -160,14 +204,14 @@ class GameRunner(Thread):
         self.viz.syncUpdate(Visualiser.change, [coord, self.viz.img['FIRE']])
         self.killCoord(*coord)
 
-        for y in range(coord[1]-1,0,-1):
+        for y in range(coord[1]-1,-1,-1):
             if not self.explodeHere(coord[0], y):
                 break
         for y in range(coord[1]+1,self.BOARDSIZE[1]):
             if not self.explodeHere(coord[0], y):
                 break
 
-        for x in range(coord[0]-1,0,-1):
+        for x in range(coord[0]-1,-1,-1):
             if not self.explodeHere(x, coord[1]):
                 break
         for x in range(coord[0]+1,self.BOARDSIZE[1]):
@@ -198,7 +242,6 @@ class GameRunner(Thread):
             print("Killing",p)
             self.viz.syncUpdate(Visualiser.addFloat, [p,self.board.players[p]['pos'],self.viz.img['SKULL']])
             self.board.players[p] = None
-
 
     def updateMapViz(self):
         if self.viz is not None:#Implementeer dit op een andere wijze (wrappermethode die de is None check doet)
@@ -254,7 +297,6 @@ class GameRunner(Thread):
             self.killCoord(x, self.BOARDSIZE[1] - 1 - self.waterlevel)
             self.board.board[self.BOARDSIZE[0] - 1 - self.waterlevel][x] = Tile.Water
         self.viz.animateWaterIn(self.waterlevel, self.viz.img['WATER'])
-
 
     def doAct(self):
         #Clear fire, trees and skulls
