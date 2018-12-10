@@ -1,102 +1,96 @@
 #!/usr/bin/python3
 
-import sys
-import re
-from framework.Game import Board, Tile
+import operator
+from typing import List, Tuple
+
+from Game import Board, Tile
 
 
 class Bot:
     def __init__(self):
         """Initialize instance variables."""
-        self.ownBoard = Board((15, 15))
-        self.enemyBoard = Board((15, 15))
-        self.lastCoord = (0, 0)
+        self.board = Board((15, 15))
+        self.done = False
+        self.water_round = None
+        self.you = None
 
-    def handle_result(self, text):
-        """Handle the server's result message."""
-        if text.find("RESULT HIT") != -1:
-            self.enemyBoard.set(self.lastCoord, Tile.Ship)
+    def handle_config(self, config_info: List[str]):
+        if config_info[0] == "WATER" and config_info[1] == "ROUND":
+            self.water_round = int(config_info[2])
 
-    def handle_update(self, text):
-        """Handle the server's update message."""
-        if text.find("RESULT GOTISLAND"):
-            tokens = text.strip().split()
-            coord = (int(re.sub("\D", "", tokens[2])),
-                     int(re.sub("\D", "", tokens[3])))
-            self.ownBoard.set(coord, Tile.Island)
+        elif config_info[0] == "TILE":
+            coord = Bot.get_coord(config_info[1])
+            self.board.set(coord, Tile[config_info[2]])
 
-    def handle_command(self, text):
+        elif config_info[0] == "PLAYER":
+            p_id = int(config_info[2])
+
+            if config_info[1] == "NAME":
+                self.board.players[p_id] = {'lives': None, 'pos': None}
+            elif config_info[1] == "PLACE":
+                self.board.players[p_id]['pos'] = Bot.get_coord(config_info[3])
+            elif config_info[1] == "LIVES":
+                self.board.players[p_id]['lives'] = int(config_info[3])
+
+        elif config_info[0] == "YOU":
+            self.you = config_info[1]
+
+    def handle_update(self, update_info: List[str]):
+        if update_info[0] == "PLAYER":
+            p_id = int(update_info[2])
+
+            if update_info[1] == "LOC":
+                self.board.players[p_id]['pos'] = Bot.get_coord(update_info[2])
+            elif update_info[1] == "STATUS":
+                if update_info[3] == "HIT":
+                    self.board.players[p_id]['lives'] -= 1
+                elif update_info[3] == "DEAD":
+                    self.board.players[p_id]['lives'] = 0
+
+        if update_info[0] == "BOMB":
+            coord = Bot.get_coord(update_info[2])
+
+            if update_info[1] == "PLACED":
+                self.board.bombs.append({'pos': coord, 'timer': 1})
+
+    def handle_command(self, text: str):
         """Handle the server's message."""
         tokens = text.strip().split()
-        if tokens[0] == 'REQUEST' and tokens[1] == 'ACTION':
-            if tokens[2] == 'SHIP':
-                location = self.choose_ship_location()
-                self.place_ship(location[0], location[1])
-            if tokens[2] == 'ISLAND':
-                coord = self.choose_island_location()
-                self.place_island(coord)
-            if tokens[2] == 'SHOT':
-                coord = self.choose_shot_location()
-                self.shoot(coord)
-        if tokens[0] == 'RESULT':
-            self.handle_result(text)
-        if tokens[0] == 'UPDATE':
-            self.handle_update(text)
-        if tokens[0] == 'GAME' and tokens[1] == 'RESULT':
+        if tokens[0] == 'CONFIG':
+            self.handle_config(tokens[1:])
+        elif tokens[0] == 'START' and tokens[1] == "GAME":
+            self.initialise()
+        elif tokens[0] == 'REQUEST' and tokens[1] == "MOVE":
+            self.report_move()
+        elif tokens[0] == 'UPDATE':
+            self.handle_update(tokens[1:])
+        elif tokens[0] == "YOU":
             self.done = True
 
-    def choose_ship_location(self):
-        """Return a location where a ship should be placed."""
-        raise NotImplementedError(
-            "You need to implement your own choose_ship_location method.")
+    def do_move(self):
+        raise NotImplementedError("Implement this function to do a move")
 
-    def choose_ship_size(self):
-        """"Return a ship size that can be placed on the board."""
-        shipSize = 0
-        for index, (size, count) in enumerate(self.shipsToPlace):
-            if count > 0:
-                self.shipsToPlace[index][1] -= 1
-                return self.shipsToPlace[index][0]
-        return shipSize
+    def report_move(self):
+        move = self.do_move()
+        dir: Tuple[int, int] = move['dir']
+        bomb: bool = move['bomb']
 
-    def choose_island_location(self):
-        """Return the next island's location."""
-        self.placementIndex += 1
-        return (int(self.placementIndex / 10), self.placementIndex % 10)
+        if max(dir) > 1 or min(dir) < -1:
+            raise ValueError("one of the dims is out of range")
 
-    def choose_shot_location(self):
-        """Return the next shot's location."""
-        self.placementIndex += 1
-        return (int(self.placementIndex / 10), self.placementIndex % 10)
+        if not self.board.is_valid_move(
+                tuple(map(operator.add,
+                          self.board.players[self.you]['pos'],
+                          dir))):
+            raise ValueError("This is not a valid location")
 
-    @staticmethod
-    def formatCoord(coord):
-        """Return a properly formatted coordinate string."""
-        return "(" + str(coord[0]) + "," + str(coord[1]) + ")"
+        if bomb:
+            print("BOMBWALK {}".format(Bot.format_dir(dir)))
+        else:
+            print("WALK {}".format(Bot.format_dir(dir)))
 
-    def place_ship(self, start, end):
-        """Print a command to stdout with the next ship's desired coordinates."""
-        success = self.ownBoard.placeShip(start, end)
-        if not success[0]:
-            raise Exception("Illegal ship placement: {0}.", success[1])
-        start = "(" + str(start[0]) + "," + str(start[1]) + ")"
-        end = "(" + str(end[0]) + "," + str(end[1]) + ")"
-        print("PLACE SHIP", start, end)
-        sys.stdout.flush()  # Nodig?
-
-    def place_island(self, coord):
-        """Print a command to stdout with the next island's desired coordinates."""
-        success = self.enemyBoard.placeIsland(coord)
-        if not success:
-            raise Exception("Illegal island placement.")
-        coord = Bot.formatCoord(coord)
-        print("PLACE ISLAND", coord)
-
-    def shoot(self, coord):
-        """Print a command to stdout with the next shot's desired coordinates."""
-        self.lastCoord = coord
-        coord = Bot.formatCoord(coord)
-        print("SHOOT", coord)
+    def initialise(self):
+        pass
 
     def run(self):
         """Run the bot."""
@@ -104,6 +98,37 @@ class Bot:
         while self.done != True:
             command = input()
             self.handle_command(command)
+
+    def get_valid_dirs(self) -> List[Tuple[int, int]]:
+        x, y = self.board.players[self.you]['pos']
+        choices = ([(1, 0)] if x != 13 else []) \
+                  + ([(0, 1)] if y != 13 else []) \
+                  + ([(-1, 0)] if x != 1 else []) \
+                  + ([(0, -1)] if y != 1 else [])
+        choices = list(filter((lambda coord:
+                               self.board.board[y + coord[1]][x + coord[0]]
+                               == Tile.Empty),
+                              choices))
+
+        return choices
+
+    @staticmethod
+    def format_dir(coord: Tuple[int, int]):
+        """Return a direction according to a coord"""
+        dirs = {(0, 1): "UP", (0, -1): "DOWN",
+                (-1, 0): "LEFT", (1, 0): "RIGHT",
+                (0, 0): "STAY"}
+        return dirs[coord]
+
+    @staticmethod
+    def format_coord(coord: Tuple[int, int]):
+        """Return a properly formatted coordinate string."""
+        return "(" + str(coord[0]) + "," + str(coord[1]) + ")"
+
+    @staticmethod
+    def get_coord(coord_str: str) -> Tuple[int, int]:
+        coord_strs = coord_str.split(',')
+        return int(coord_strs[0][1:]), int(coord_strs[1][:-1])
 
 
 if __name__ == "__main__":

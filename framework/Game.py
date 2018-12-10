@@ -4,9 +4,9 @@ from enum import Enum
 from threading import Thread
 import random
 import time
-from .Util import lbRecv, sockSend
+from Util import lbRecv, sockSend
 
-from .Visualiser import Visualiser
+from Visualiser import Visualiser
 
 TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5

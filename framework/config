@@ -12,7 +12,7 @@ EnableVisualiser  = True
 [BOT]
 WriteStdErrToFile = True
 StdErrFile        = ./stderr.txt
-RunCommand        = ./../exampleBot/ExampleBot.py
+RunCommand        = ./../PythonBot/ExampleBot.py
 
 
 [SERVER]
