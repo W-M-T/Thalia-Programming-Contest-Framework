@@ -4,9 +4,9 @@ from enum import Enum
 from threading import Thread
 import random
 import time
-from .Util import lbRecv, sockSend
+from Util import lbRecv, sockSend
 
-from .Visualiser import Visualiser
+from Visualiser import Visualiser, VisualiserWrapper
 
 TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5
@@ -116,9 +116,6 @@ class Board:
     def set(self, coord, val):
         self.board[coord[0]][coord[1]] = val
 
-    def is_valid_move(self, coord):
-        return self.get(coord) == Tile.Empty
-
     def gameover(self):
         return livePlayerCount <= 1
 
@@ -203,7 +200,7 @@ class GameRunner(Thread):
 
     #improve this
     def explode(self, coord):
-        self.viz.syncUpdate(Visualiser.change, [coord, self.viz.img['FIRE']])
+        self.viz.syncUpdate(Visualiser.changeByKey, coord, 'FIRE')
         self.killCoord(*coord)
 
         for y in range(coord[1]-1,-1,-1):
@@ -220,7 +217,7 @@ class GameRunner(Thread):
             if not self.explodeHere(x, coord[1]):
                 break
 
-        self.viz.syncUpdate(Visualiser.drawScreen, [])
+        self.viz.syncUpdate(Visualiser.drawScreen)
 
     def explodeHere(self, x, y):
         #return False if ended
@@ -231,10 +228,10 @@ class GameRunner(Thread):
             return False
         elif self.board.board[y][x] == Tile.Tree:
             self.board.board[y][x] = Tile.Empty
-            self.viz.syncUpdate(Visualiser.change, [(x,y), self.viz.img['BURNTREE']])
+            self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'BURNTREE')
             return False
         else:
-            self.viz.syncUpdate(Visualiser.change, [(x,y), self.viz.img['FIRE']])
+            self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'FIRE')
             return True
 
     def killCoord(self, x, y):
@@ -242,47 +239,47 @@ class GameRunner(Thread):
         foundHere = list(filter((lambda t: self.board.players[t] is not None and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
             print("Killing",p)
-            self.viz.syncUpdate(Visualiser.addFloat, [p,self.board.players[p]['pos'],self.viz.img['SKULL']])
+            self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
             self.board.players[p] = None
 
     def updateMapViz(self):
         if self.viz is not None:#Implementeer dit op een andere wijze (wrappermethode die de is None check doet)
             for y in range(self.BOARDSIZE[1]):
                 for x in range(self.BOARDSIZE[0]):
-                    self.viz.syncUpdate(Visualiser.change, [(x,y), {
-                                            Tile.Water:self.viz.img['WATER'],
-                                            Tile.Mountain:self.viz.img['MOUNTAIN'],
-                                            Tile.Tree:self.viz.img['TREE'],
-                                            Tile.Empty:self.viz.img['DOT2']
-                                            }[self.board.board[y][x]]])
-            self.viz.syncUpdate(Visualiser.drawScreen, [])
+                    self.viz.syncUpdate(Visualiser.changeByKey, (x,y), {
+                                            Tile.Water:'WATER',
+                                            Tile.Mountain:'MOUNTAIN',
+                                            Tile.Tree:'TREE',
+                                            Tile.Empty:'DOT2'
+                                            }[self.board.board[y][x]])
+            self.viz.syncUpdate(Visualiser.drawScreen)
             print("Screen should update now")
 
     def setPlayersViz(self):
-        images = list(map((lambda x: self.viz.img['CHAR{}'.format(x)]), list(range(1,5))))
+        images = list(map((lambda x: 'CHAR{}'.format(x)), list(range(1,5))))
         print(images)
         random.shuffle(images)
 
         for ix, (player,info) in enumerate(self.board.players.items()):
             print(player)
-            self.viz.syncUpdate(Visualiser.addFloat, [player,info['pos'],images[ix]])
-        self.viz.syncUpdate(Visualiser.drawScreen, [])
+            self.viz.syncUpdate(Visualiser.addFloatByKey, player,info['pos'], images[ix])
+        self.viz.syncUpdate(Visualiser.drawScreen)
 
     def updatePlayerViz(self):
         moves = {}
         for player, info in self.board.players.items():
             if info is not None:
                 moves[player] = info['pos']
-        self.viz.syncUpdate(Visualiser.animateWalk, [moves])
+        self.viz.syncUpdate(Visualiser.animateWalk, moves)
 
     def clearFires(self):
         for y in range(self.BOARDSIZE[1]):
             for x in range(self.BOARDSIZE[0]):
                 if self.board.board[y][x] == Tile.Empty:
-                    self.viz.syncUpdate(Visualiser.change, [(x,y), self.viz.img['DOT2']])
+                    self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'DOT2')
         for p, info in self.board.players.items():
             if info == None:
-                self.viz.syncUpdate(Visualiser.removeFloat, [p])
+                self.viz.syncUpdate(Visualiser.removeFloat, p)
 
     def doWater(self):
         self.clearFires()
@@ -298,7 +295,7 @@ class GameRunner(Thread):
             self.board.board[self.waterlevel][x] = Tile.Water
             self.killCoord(x, self.BOARDSIZE[1] - 1 - self.waterlevel)
             self.board.board[self.BOARDSIZE[0] - 1 - self.waterlevel][x] = Tile.Water
-        self.viz.animateWaterIn(self.waterlevel, self.viz.img['WATER'])
+        self.viz.syncUpdate(Visualiser.animateWaterIn, self.waterlevel)
 
     def doAct(self):
         #Clear fire, trees and skulls
@@ -374,8 +371,9 @@ class GameRunner(Thread):
         
 
 def main():
-    viz = Visualiser(True, 1)#None#
-    gr = GameRunner([{"name":"testerbot"},{"name":"randbot"},{"name":"silentbot"},{"name":"mutebot"}],viz=viz)
+    viz = Visualiser(True, 1)
+    wrapper = VisualiserWrapper(viz)
+    gr = GameRunner([{"name":"testerbot"},{"name":"randbot"},{"name":"silentbot"},{"name":"mutebot"}],viz=wrapper)
     gr.run()
     
 

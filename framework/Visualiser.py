@@ -44,11 +44,6 @@ def coordToGrid(x, y):
     res = (-y + (SIZE - 1), x + 1)
     return res
 
-'''
-TODO
-in plaats van met irritante offsets werken gewoon naar een tussensurface tekenen die het veld voorstelt
-en teken deze in het scherm
-'''
 
 def getFieldDims():
     return ((SIZE)*TD_MARGIN + (SIZE)*TD_SIZE[0] + FIELD_MARGIN*2,
@@ -291,6 +286,10 @@ class Visualiser():
     def addFloat(self, name, coord, img):
         self.drawFloats[name] = (img, coord)
 
+    def addFloatByKey(self, name, coord, key):#Maybe just add a getter method for img?
+        if key in self.img:
+            self.drawFloats[name] = (self.img[key], coord)
+
     def addBomb(self, coord):
         self.drawBombs.append((False, coord))
 
@@ -307,7 +306,12 @@ class Visualiser():
     def change(self, coord, img):
         self.drawTable[coord[1]][coord[0]] = img
 
-    def animateWaterIn(self,inset,image):
+    def changeByKey(self, coord, key):
+        if key in self.img:
+            self.drawTable[coord[1]][coord[0]] = self.img[key]
+
+    def animateWaterIn(self,inset):
+        image = self.img['WATER']
         start = inset
         end = SIZE-1 - inset
         rang = range(start,end)
@@ -384,7 +388,7 @@ class Visualiser():
             (func,args) = self.updateQueue.get()
             func(self,*args)
 
-    def syncUpdate(self,func,args):
+    def syncUpdate(self,func,*args):
         if not self.is_main:
             print("Put in queue")
             self.updateQueue.put((func,args))
@@ -393,8 +397,15 @@ class Visualiser():
             func(self,*args)
 
 
-#TODO it would be nice to not have to check if a visualiser is None in GameRunner and Server wrp to calling the update methods.
-#Define a wrapper for Visualiser that allows this while still allowing things like "viz.img["WATER"]". Maybe use a property decorator?
+class VisualiserWrapper:
+
+    def __init__(self, viz):
+        self.viz = viz
+
+    def syncUpdate(self,func,*args):
+        if self.viz is not None:
+            self.viz.syncUpdate(func,*args)
+
 
 
 if __name__ == "__main__":
