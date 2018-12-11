@@ -65,6 +65,7 @@ def getScreenDims(font):
 def coordToSurfacePos(coord):
         return (TD_SIZE[0] + FIELD_MARGIN + (coord[0]-1)*(TD_MARGIN+TD_SIZE[0]), TD_SIZE[1] + FIELD_MARGIN + (coord[1]-1)*(TD_MARGIN+TD_SIZE[1]))
 
+
 class Visualiser():
    
     def initTable(self):
