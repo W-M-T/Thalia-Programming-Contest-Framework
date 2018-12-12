@@ -10,7 +10,8 @@ from threading import Thread
 from queue import Queue
 import math
 
-
+#Text 20 and TD 60 for projection
+#Text 15 and TD 30 for projection
 
 
 SIZE = 15
@@ -23,20 +24,29 @@ TEXT_HEIGHT = 15
 SCREEN_MARGIN = 5
 
 TD_MARGIN = 1
-TD_SIZE = (50,)*2
+TD_SIZE = (30,)*2
 FIELD_MARGIN = 5
 FIELD_RECT = pygame.Rect((FIELD_MARGIN,FIELD_MARGIN), (SIZE*TD_SIZE[0] + (SIZE-1)*TD_MARGIN,SIZE*TD_SIZE[1] + (SIZE-1)*TD_MARGIN))
+
 
 def importImg(path):
     temp = pygame.image.load(path)
     return pygame.transform.smoothscale(temp, TD_SIZE)
-
 
 def makeImgTable(dict):
     #Dict of NAME:filepath
     temp = {}
     for k, v in dict.items():
         temp[k] = importImg(v).convert_alpha()
+    return temp
+
+def makeAvatarTable(font, dict):#Should be refactored out, but keep it for now
+    #Dict of NAME:filepath
+    dims = getInfoDims(font)
+    temp = {}
+    for k, v in dict.items():
+        img = pygame.image.load(v)
+        temp[k] = pygame.transform.smoothscale(img, (dims[1],)*2).convert_alpha()
     return temp
 
 
@@ -57,15 +67,18 @@ def getIndentedFieldDims(font):
     return tuple(map(sum,zip(getFieldDims(),getFieldIndent(font))))
 
 def getInfoDims(font):
-    return (0,60)
+    screenwidth = getFieldDims()[0]+getFieldIndent(font)[0]
+    ysize = max(TD_SIZE[1],TEXT_HEIGHT*2+FIELD_MARGIN*2)
+    return (screenwidth,ysize)
 
 def getScreenDims(font):
-    return tuple(map(sum,zip(getFieldDims(),getFieldIndent(font),getInfoDims(font))))
+    (fieldx,fieldy) = tuple(map(sum,zip(getFieldDims(),getFieldIndent(font))))
+    return (fieldx, fieldy + getInfoDims(font)[1])
 
 def coordToSurfacePos(coord):
         return (TD_SIZE[0] + FIELD_MARGIN + (coord[0]-1)*(TD_MARGIN+TD_SIZE[0]), TD_SIZE[1] + FIELD_MARGIN + (coord[1]-1)*(TD_MARGIN+TD_SIZE[1]))
 
-
+#TODO Add easy way to create thread to run "doUIThread"
 class Visualiser():
    
     def initTable(self):
@@ -170,6 +183,7 @@ class Visualiser():
             'FIRECRACKER'   : 'firecracker_1f9e8.png',
             'DOT'           : 'white-small-square_25ab.png',
             'DOT2'          : 'white-medium-small-square_25fd.png',
+            'DOT3'          : 'white-medium-square_25fb2.png',
             'BLOCK'         : 'black-square-button_1f532.png',
             'SPROUT'        : 'seedling_1f331.png',
             'FIRE'          : 'fire_1f525.png',
@@ -188,20 +202,37 @@ class Visualiser():
             }.items()}
         self.img = makeImgTable(images)
 
+        self.avatars = makeAvatarTable(self.font, {k : "img/" + v for k,v in {
+            'CHAR1'         : 'playerblue.png',
+            'CHAR2'         : 'playerred.png',
+            'CHAR3'         : 'playergreen.png',
+            'CHAR4'         : 'playeryellow.png',
+            'DOT3'          : 'white-medium-square_25fb2.png',
+            'SKULL'         : 'skull-and-crossbones_2620.png',
+            'HEART'         : 'black-heart-suit_2665.png',
+            'FIRE'          : 'fire_1f525.png'
+            }.items()}) # TODO import the avatars hi-res
+
 
         self.drawFloats = {}
         self.drawBombs = []
+
+
+        self.playerInfo = [("",-1,False)]*4 # (name, lives, fire)
         
         '''
+        self.playerInfo = [("Teamname",3,False)]*4
+        
         self.drawFloats['p1'] = (self.img['CHAR1'],   (6,5))
         self.drawFloats['p2'] = (self.img['CHAR2'],  (6,10))
         self.drawFloats['p3'] = (self.img['CHAR3'],    (6,9))
         '''
         
         self.drawTable  = []
+        self.fieldLabelSurface = pygame.Surface(getIndentedFieldDims(self.font))
         self.fieldSurface = pygame.Surface(getFieldDims())
-        #self.fieldZoomSurface = pygame.Surface(getFieldDims())
-        #self.zoomAmount = 0
+        self.infoBoxSurface = pygame.Surface(getInfoDims(self.font))
+
         self.initTable()
 
         self.drawScreen()
@@ -209,23 +240,23 @@ class Visualiser():
         
 
         #self.own.resizable(0,0)
-    '''
-    size*scale = newsize
-    size - inset = wantedview
-    (newsize - size)/scale = wantedview
-    newsize/wantedview - size/wantedview = scale
-    size*scale/wantedview - size/wantedview = scale
-    '''
 
     def drawScreen(self):
         self.screen.fill(pygame.Color("#FFFFFF"))
         self.drawField()
-        self.screen.blit(self.fieldSurface,getFieldIndent(self.font))
 
+        self.fieldLabelSurface.fill(pygame.Color("#FFFFFF"))
+        self.fieldLabelSurface.blit(self.fieldSurface,getFieldIndent(self.font))
         self.drawLabels()
 
-        pname = self.font.render("_", True, (10,)*3)
-        self.screen.blit(pname, (0,getIndentedFieldDims(self.font)[1]))
+        self.screen.blit(self.fieldLabelSurface,(0,getInfoDims(self.font)[1]))
+
+        self.infoBoxSurface.fill(pygame.Color("#E6E7E8"))
+        self.drawInfoBox()
+
+        self.screen.blit(self.infoBoxSurface,(0,0))
+
+
         pygame.display.flip()
 
 
@@ -242,6 +273,32 @@ class Visualiser():
         yFieldPos = indent[1] + coordToSurfacePos((0,n))[1] + (TD_SIZE[1]+TD_MARGIN)/2
         return (xMid, yFieldPos)
 
+    def drawInfoBox(self):
+        dims = getInfoDims(self.font)
+        textdims = (dims[1]-SCREEN_MARGIN*2)//2
+        singlewidth = dims[0]//4
+        inset = 0.8
+        iconMake = lambda res: pygame.transform.smoothscale(self.avatars[res], ((round(dims[1]*inset),)*2))#Don't redo this every render
+        icons = {k:iconMake(k) for k in ["CHAR1","CHAR2","CHAR3","CHAR4","SKULL","FIRE"]}
+        heart = pygame.transform.smoothscale(self.avatars['HEART'], (textdims,)*2)
+
+        for i in range(0,4):
+            if self.playerInfo[i][1] > -1:
+                tempSurface = pygame.Surface((singlewidth,dims[1]))
+                tempSurface.fill(pygame.Color("#E6E7E8"))
+                tempSurface.blit(self.avatars['DOT3'],(0,0))
+                tempSurface.blit(icons["CHAR{}".format(i+1)] if self.playerInfo[i][1] > 0 else icons["SKULL"], ((round(dims[1]*(1-inset)/2),)*2))
+
+                if self.playerInfo[i][2]:
+                    tempSurface.blit(icons["FIRE"], ((round(dims[1]*(1-inset)/2),)*2))
+                
+                pname = self.font.render("{}".format(self.playerInfo[i][0]), True, (10,10,10))
+                tempSurface.blit(pname, (dims[1],SCREEN_MARGIN))
+                #tempSurface.blit(pname, (dims[1],SCREEN_MARGIN*2+textdims))
+                for j in range(0,self.playerInfo[i][1]):
+                    tempSurface.blit(heart, (dims[1]+j*textdims,SCREEN_MARGIN+textdims))
+
+                self.infoBoxSurface.blit(tempSurface, (i*singlewidth, 0))
 
     def drawLabels(self):
         for i in range(SIZE):
@@ -250,10 +307,10 @@ class Visualiser():
 
             xAxis = self.labelMidCoordX(i)
             xAxPos = (xAxis[0] - labelmid[0], xAxis[1] - labelmid[1]*0.5)
-            self.screen.blit(label, xAxPos)
+            self.fieldLabelSurface.blit(label, xAxPos)
             yAxis = self.labelMidCoordY(i)
             yAxPos = (yAxis[0] - labelmid[0]*2, yAxis[1] - labelmid[1])
-            self.screen.blit(label, yAxPos)
+            self.fieldLabelSurface.blit(label, yAxPos)
             #print(yAxPos)
             #pygame.draw.circle(self.screen, (255,0,0), (int(xAxis[0]),int(xAxis[1])), 2, 2)
             #pygame.draw.circle(self.screen, (255,0,0), (int(yAxis[0]),int(yAxis[1])), 2, 2)
@@ -267,14 +324,6 @@ class Visualiser():
                 if val is not None:
                     self.fieldSurface.blit(val, coordToSurfacePos((x,y)))
 
-        #dims = getFieldDims()
-        #newdims = (dims[0]-2*self.zoomAmount,dims[1]-2*self.zoomAmount)
-        #newRect = pygame.Rect((-self.zoomAmount,)*2, (dims[0]-self.zoomAmount,dims[1]-self.zoomAmount))
-        #print(newRect)
-        #self.fieldZoomSurface = pygame.Surface(newdims)
-        #self.fieldZoomSurface.blit(self.fieldSurface, (0,0), newRect)
-        #pygame.transform.smoothscale(self.fieldZoomSurface,dims)
-        #self.screen.blit(self.fieldZoomSurface,(0,0))
         for (primed, coord) in self.drawBombs:
             self.fieldSurface.blit(self.img['BOMB'] if not primed else self.img['BLOWUP'], coordToSurfacePos(coord))
 
@@ -283,6 +332,12 @@ class Visualiser():
             image = agent[0]
             coord = agent[1]
             self.fieldSurface.blit(image, coordToSurfacePos(coord))
+
+    def setPlayerInfo(self, pID, info):
+        self.playerInfo[pID] = info
+
+    def getPlayerInfo(self, pID):
+        return self.playerInfo[pID]
 
     def addFloat(self, name, coord, img):
         self.drawFloats[name] = (img, coord)
@@ -415,17 +470,21 @@ if __name__ == "__main__":
     #v.showResult(True,None)
     import time
     time.sleep(2)
-    '''
+    
     v.animateWalk({'p1':(6,4),'p2':(7,10)})
+    v.setPlayerInfo(2,("Teamname",2,False))
     v.animateWalk({'p1':(7,4),'p2':(8,10)})
+    v.setPlayerInfo(2,("Teamname",1,False))
     v.animateWalk({'p1':(7,5),'p2':(8,9)})
+    v.setPlayerInfo(2,("Teamname",0,True))
     v.animateWalk({'p1':(8,5),'p2':(8,8)})
-    '''
+    v.setPlayerInfo(2,("Teamname",-1,False))
+    
     time.sleep(2)
     
     
     for i in range(4):
-        v.animateWaterIn(i+1,v.img['WATER'])
+        v.animateWaterIn(i+1)
         #v.animateWaterIn(i,None)
     
     time.sleep(65)
