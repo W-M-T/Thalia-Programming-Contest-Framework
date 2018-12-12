@@ -11,6 +11,9 @@ from Visualiser import Visualiser, VisualiserWrapper
 TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5
 
+LIVES = 3
+WATERROUNDS = [40,60,80,100]
+
 
 class Tile(Enum):
     Water       = 0
@@ -154,12 +157,12 @@ class GameRunner(Thread):
     #implement timeouts
 
     #combineer socket en linebuffer in een object?
-    #teamname, socket, addr
+    #name, socket, addr
     def __init__(self, clients, viz = None, spectator = None):
         super(GameRunner, self).__init__()
 
         self.clients = clients
-        self.viz = viz
+        self.viz = VisualiserWrapper(viz)
         self.spectator = spectator
 
         for client in self.clients:
@@ -168,11 +171,16 @@ class GameRunner(Thread):
 
         self.BOARDSIZE = (15,)*2
         self.board = Board(self.BOARDSIZE)
-        #self.board.fillBoard1()
-        self.board.placePlayers(len(clients),2)
-        if viz is not None:
-            self.updateMapViz()
-            self.setPlayersViz()
+        self.board.fillBoard1()
+        self.board.placePlayers(len(clients),LIVES)
+
+        for p, pinfo in self.board.players.items():
+            pos = pinfo ["pos"]
+            self.viz.syncUpdate(Visualiser.addFloatByKey, p, pos, 'CHAR{}'.format(p.lstrip("p")))
+
+        self.updatePlayerInfoViz()
+        self.updateMapViz()
+        
 
         self.end  = False
 
@@ -236,24 +244,31 @@ class GameRunner(Thread):
 
     def killCoord(self, x, y):
         #TODO FIX THIS (bad)
-        foundHere = list(filter((lambda t: self.board.players[t] is not None and self.board.players[t]['pos'] == (x,y)),self.board.players))
+        foundHere = list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
             print("Killing",p)
             self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
-            self.board.players[p] = None
+            self.board.players[p]['lives'] = 0
 
+    #TODO LOOK AT THIS
     def updateMapViz(self):
-        if self.viz is not None:#Implementeer dit op een andere wijze (wrappermethode die de is None check doet)
-            for y in range(self.BOARDSIZE[1]):
-                for x in range(self.BOARDSIZE[0]):
-                    self.viz.syncUpdate(Visualiser.changeByKey, (x,y), {
-                                            Tile.Water:'WATER',
-                                            Tile.Mountain:'MOUNTAIN',
-                                            Tile.Tree:'TREE',
-                                            Tile.Empty:'DOT2'
-                                            }[self.board.board[y][x]])
-            self.viz.syncUpdate(Visualiser.drawScreen)
-            print("Screen should update now")
+        for y in range(self.BOARDSIZE[1]):
+            for x in range(self.BOARDSIZE[0]):
+                self.viz.syncUpdate(Visualiser.changeByKey, (x,y), {
+                                        Tile.Water:'WATER',
+                                        Tile.Mountain:'MOUNTAIN',
+                                        Tile.Tree:'TREE',
+                                        Tile.Empty:'DOT2'
+                                        }[self.board.board[y][x]])
+        self.viz.syncUpdate(Visualiser.drawScreen)
+        print("Screen should update now")
+
+    def updatePlayerInfoViz(self):
+        for p, pinfo in self.board.players.items():
+            pos = pinfo ["pos"]
+            lives = pinfo["lives"]
+            pNo = int(p.lstrip("p")) - 1
+            self.viz.syncUpdate(Visualiser.setPlayerInfo, pNo, (self.clients[pNo]["name"] ,lives, False))
 
     def setPlayersViz(self):
         images = list(map((lambda x: 'CHAR{}'.format(x)), list(range(1,5))))
@@ -314,8 +329,7 @@ class GameRunner(Thread):
     def primeBombs(self):
         for bomb in self.board.bombs:
             if bomb['timer'] == 1:
-                #self.viz.syncUpdate(Visualiser.addFloat, [bomb, bomb['pos'], self.viz.img['BLOWUP']])
-                pass
+                self.viz.syncUpdate(Visualiser.primeBomb, bomb['pos'])
 
     def doBlow(self):
         self.primeBombs()
@@ -325,15 +339,39 @@ class GameRunner(Thread):
         self.doAct()
         #time.sleep(1)
         self.doBlow()
-        time.sleep(0.3)
+        time.sleep(0.1)
+
+    def doConfig(self):
+        #Inform names and ids
+        for no, client in enumerate(self.clients):
+            writeTo(client, "CONFIG YOU p{}".format(no+1))
+            for no2, client2 in enumerate(self.clients):
+                if no != no2:
+                    writeTo(client, "CONFIG PLAYER NAME p{} {}".format(no2+1, client2["name"]))
+
+            #Inform location and lives
+            for no2, client2 in enumerate(self.clients):
+                character = self.board.players["p{}".format(no2+1)]
+                writeTo(client, "CONFIG PLAYER PLACE p{} {}".format(no2+1, character["pos"]))
+                writeTo(client, "CONFIG PLAYER LIVES p{} {}".format(no2+1, character["lives"]))
+
+            #Water rounds
+            for waterRound in WATERROUNDS:
+                writeTo(client, "CONFIG WATER ROUND {}".format(waterRound))
+
+            #Map
+            for y in range(self.board.dims[1]):
+                for x in range(self.board.dims[0]):
+                    el = self.board.board[x][y]
+                    if el != Tile.Empty:
+                        writeTo(client, "CONFIG TILE {} {}".format((x,y), el.name.upper()))
+
 
     def run(self):
         try:
             print(" versus ".join(map(lambda x: x['name'], self.clients)))
 
             #informSpectator(self.spectator,"updateTitle True {}".format(self.clientA["name"]))
-            #if self.viz is not None:
-            #    self.viz.syncUpdate(Visualiser.updateTitle, [self.clientA["name"],self.clientB["name"]])
 
             #combinations(self.clients, len(self.clients) - 1)
             for client in self.clients:
@@ -342,9 +380,16 @@ class GameRunner(Thread):
             #writeTo(self.clientB,"CHALLENGED BY {}".format(self.clientA["name"]))
 
             #self.waitReady()
+
+            self.doConfig()
+
+            '''
+            time.sleep(2)
             self.board.bombs.append({'pos':(7,7),'timer':1})
+            self.viz.syncUpdate(Visualiser.addBomb, (7,7))
             for i in range(5):
                 self.doTurn()
+            '''
             
             
         except (GameEndException,connClosedException) as e:
@@ -354,20 +399,19 @@ class GameRunner(Thread):
             #client["socket"].close()
             pass
 
-        informSpectator(self.spectator,"end")
+        #informSpectator(self.spectator,"end")
 
         time.sleep(1)
         #self.board.players['p1']['pos'] = (7,)*2
         #self.updatePlayerViz()
         #time.sleep(5)
         for i in range(4):
-            self.doWater()
-        #    self.viz.animateWaterIn(i+1,self.viz.img['WATER'])
+            #self.doWater()
             #v.animateWaterIn(i,None)
-        if self.viz is not None:
-            time.sleep(15)
-            #self.viz.syncUpdate(Visualiser.resetBoth, [])
-            #self.viz.syncUpdate(Visualiser.updateTitle, ["",""])
+            pass
+        time.sleep(15)
+
+        print("Match ended")
         
 
 def main():

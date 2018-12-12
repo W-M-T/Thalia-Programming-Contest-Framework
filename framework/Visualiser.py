@@ -11,7 +11,7 @@ from queue import Queue
 import math
 
 #Text 20 and TD 60 for projection
-#Text 15 and TD 30 for projection
+#Text 15 and TD 40 for testing
 
 
 SIZE = 15
@@ -24,10 +24,11 @@ TEXT_HEIGHT = 15
 SCREEN_MARGIN = 5
 
 TD_MARGIN = 1
-TD_SIZE = (30,)*2
+TD_SIZE = (40,)*2
 FIELD_MARGIN = 5
 FIELD_RECT = pygame.Rect((FIELD_MARGIN,FIELD_MARGIN), (SIZE*TD_SIZE[0] + (SIZE-1)*TD_MARGIN,SIZE*TD_SIZE[1] + (SIZE-1)*TD_MARGIN))
 
+#TEXT_HEIGHT, TD_SIZE = 20, (60,)*2
 
 def importImg(path):
     temp = pygame.image.load(path)
@@ -219,14 +220,7 @@ class Visualiser():
 
 
         self.playerInfo = [("",-1,False)]*4 # (name, lives, fire)
-        
-        '''
-        self.playerInfo = [("Teamname",3,False)]*4
-        
-        self.drawFloats['p1'] = (self.img['CHAR1'],   (6,5))
-        self.drawFloats['p2'] = (self.img['CHAR2'],  (6,10))
-        self.drawFloats['p3'] = (self.img['CHAR3'],    (6,9))
-        '''
+
         
         self.drawTable  = []
         self.fieldLabelSurface = pygame.Surface(getIndentedFieldDims(self.font))
@@ -421,22 +415,9 @@ class Visualiser():
 
         #finalize to whole number
         for agentname, newpos in agentcoords.items():
+            #print(agentname, newpos)
             self.drawFloats[agentname] = (self.drawFloats[agentname][0], newpos)
         self.drawScreen()
-    '''
-    def zoomInLevel(self):
-        sec = 5
-        fps = 60
-        for i in range(sec*fps):
-            self.zoomAmount = self.zoomAmount + 1
-            self.drawField()
-            time.sleep(1/fps)
-    '''
-
-    '''
-    def wait(self, sec):
-        time.wait(sec)
-    '''
 
 
     def doUIThread(self):
@@ -459,6 +440,7 @@ class VisualiserWrapper:
         self.viz = viz
 
     def syncUpdate(self,func,*args):
+        #print(func)
         if self.viz is not None:
             self.viz.syncUpdate(func,*args)
 
@@ -468,6 +450,16 @@ if __name__ == "__main__":
     v = Visualiser(True,1)
     #v.change((3,3),v.img['ISLAND'])
     #v.showResult(True,None)
+
+    v.addFloat('p1', (6,5), v.img['CHAR1'],)
+    v.setPlayerInfo(0,("Teamname",3,False))
+    v.addFloat('p2', (6,10), v.img['CHAR2'])
+    v.setPlayerInfo(1,("Teamname",3,False))
+    v.addFloat('p3', (6,9), v.img['CHAR3'])
+    v.setPlayerInfo(2,("Teamname",3,False))
+    v.drawScreen()
+    
+
     import time
     time.sleep(2)
     

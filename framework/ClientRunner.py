@@ -18,7 +18,7 @@ sock = None
 linebuffer = []
 SHELLMODE = True
 
-DEBUG = False
+DEBUG = True
 debugfile = None
 
 def cleanup():
@@ -79,6 +79,13 @@ def testEnd(data):
         print("GAME OVER:",data)
         raise gameEnded
 
+def isRequest(data):
+    return data.find("REQUEST MOVE") == 0
+
+
+def updateViz(viz,data,response=None):
+    pass
+
 
 def becomeLink(viz):
     global proc, sock
@@ -98,25 +105,14 @@ def becomeLink(viz):
 
             testEnd(data)
 
-            flow = getDepth(data)
+            respond = isRequest(data)
 
-            if flow >= 2:
+            if respond:
                 #BOT -> SERVER
                 bot_resp = input() if DEBUG else proc.stdout.readline().rstrip("\n")
-                #print(bot_resp)
+                print(bot_resp)
                 sayToServer(bot_resp)
                 updateViz(viz,data,response=bot_resp)
-
-                testEnd(data)
-
-            if flow >= 3:
-                #SERVER -> BOT AGAIN
-                data_result = lbRecv(sock, linebuffer)
-                if DEBUG:
-                    print(data_result)
-                else:
-                    print(data_result, file=proc.stdin, flush=True)
-                updateViz(viz,data,response=bot_resp,result=data_result)
 
                 testEnd(data)
 

@@ -6,6 +6,7 @@ RECVCONST = 4096
 
 def lbRecv(socket, linebuffer):#Line buffered receive
     #unhandled case is if the socket receive ends in the middle of a message, wich should only happen if there are more than 4096 bytes in the receive buffer
+    #When transfering maps this occurs. TODO fix it or just increase the constant (hacky fix)
     if linebuffer:
         return linebuffer.pop(0)
     else:
