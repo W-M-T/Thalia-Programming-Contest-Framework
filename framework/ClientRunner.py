@@ -8,14 +8,15 @@ import time
 import select
 from argparse import ArgumentParser
 import configparser
-from Util import lbRecv, stripFormat, parseCoord, sockSend
+from Util import lbRecv, stripFormat, parseCoord, sockSend, RecvBuffer
+from Visualiser import Visualiser, VisualiserWrapper
 
 #refactor:
 #move the parsing and viz update code to another file to keep this runner independent of the game
 
 proc = None
 sock = None
-linebuffer = []
+recvbuffer = RecvBuffer()
 SHELLMODE = True
 
 DEBUG = True
@@ -54,13 +55,13 @@ def establish_connection(server, port, teamname, roomkey):
 
 
 def waitForChallenge():
-    global sock, linebuffer
+    global sock, recvbuffer
 
     print("[*] Waiting for challenger")
 
     while True:
         
-        s = lbRecv(sock, linebuffer)
+        s = lbRecv(sock, recvbuffer)
         print(s)
         if s.find("PING") == 0:
             sayToServer("PONG")
@@ -83,8 +84,28 @@ def isRequest(data):
     return data.find("REQUEST MOVE") == 0
 
 
-def updateViz(viz,data,response=None):
-    pass
+def updateViz(viz,data,response=None): #No parsing error handling for server data (has to be correct as a part of the framework)
+    print("Update the viz")
+    maybeConfig = stripFormat("CONFIG ", data)
+
+    if maybeConfig is not None:
+
+        maybeTile = stripFormat("TILE ", maybeConfig)
+        print("Update the tile")
+        if maybeTile is not None:
+            tokens = maybeTile.split(") ",1)
+            maybeCoord = parseCoord(tokens[0]+")")
+            lookup = {
+                "WATER" : "WATER",
+                "MOUNTAIN" : "MOUNTAIN",
+                "TREE" : "TREE",
+                "EMPTY" : "DOT2"
+            }
+            print(maybeCoord,lookup[tokens[1]])
+            print(viz.viz)
+            viz.syncUpdate(Visualiser.changeByKey, maybeCoord, lookup[tokens[1]])
+            viz.syncUpdate(Visualiser.drawScreen)#Only update after receiving all
+        return
 
 
 def becomeLink(viz):
@@ -96,7 +117,7 @@ def becomeLink(viz):
             #print("LOOPING")
 
             #SERVER -> BOT
-            data = lbRecv(sock, linebuffer)
+            data = lbRecv(sock, recvbuffer)
             if DEBUG:
                 print(data)
             else:
@@ -183,8 +204,7 @@ def work():
     #Move to separate function
     if viz_enabled:
         try:
-            from Visualiser import Visualiser
-            viz = Visualiser(True,1)
+            viz = VisualiserWrapper(Visualiser(True,1))
             #viz.updateTitle("You ({})".format(team),"Other ({})".format(otherteam))
 
             print("[+] UI running")
@@ -193,7 +213,7 @@ def work():
             print(e)
             print(proc.stderr.read(), end="")
     else:
-        viz = None
+        viz = VisualiserWrapper(None)
 
     print("READY")
     sayToServer("READY")

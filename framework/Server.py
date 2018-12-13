@@ -7,7 +7,7 @@ from enum import IntEnum
 from time import sleep
 from Visualiser import Visualiser
 from argparse import ArgumentParser
-from Util import lbRecv, stripFormat, sockSend
+from Util import lbRecv, stripFormat, sockSend, RecvBuffer
 
 
 incomingsocket = None
@@ -64,7 +64,7 @@ class ConnHandler(Thread):
         super(ConnHandler, self).__init__(daemon=True)
         self.connection = connection
         self.client = client
-        self.linebuffer = []
+        self.recvbuffer = RecvBuffer()
 
     def handleLobby(self):
         global viz
@@ -135,9 +135,9 @@ class ConnHandler(Thread):
             #Get client info
             self.connection.settimeout(2)
 
-            nameline = lbRecv(self.connection,self.linebuffer)
+            nameline = lbRecv(self.connection,self.recvbuffer)
             name = stripFormat("CLIENT NAME ", nameline)
-            key = stripFormat("CLIENT KEY ", lbRecv(self.connection,self.linebuffer))
+            key = stripFormat("CLIENT KEY ", lbRecv(self.connection,self.recvbuffer))
 
             maybeSpectator = stripFormat("SPECTATOR",nameline)
             if maybeSpectator is not None and key is not None:

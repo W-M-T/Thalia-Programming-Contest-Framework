@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import random
 
-from PythonBot.Bot import *
+from Bot import *
 
 
 class ExampleBot(Bot):

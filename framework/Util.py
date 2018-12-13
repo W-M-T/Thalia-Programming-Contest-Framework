@@ -4,18 +4,29 @@ RECVCONST = 4096
 
 #TODO handle the difference in exceptions
 
-def lbRecv(socket, linebuffer):#Line buffered receive
-    #unhandled case is if the socket receive ends in the middle of a message, wich should only happen if there are more than 4096 bytes in the receive buffer
-    #When transfering maps this occurs. TODO fix it or just increase the constant (hacky fix)
-    if linebuffer:
-        return linebuffer.pop(0)
+class RecvBuffer():
+    def __init__(self):
+        self.linebuffer = []
+        self.restdata = ""
+
+#TODO combine the receive buffer and the socket into a line buffered receive buffer object
+def lbRecv(socket, rb):#Line buffered receive
+    #unhandled case: There is a single message, which is longer than the receive constant
+    if rb.linebuffer:
+        return rb.linebuffer.pop(0)
     else:
         bytedata = socket.recv(RECVCONST)
         if len(bytedata) == 0:#Connection was closed
             raise Exception("Connection was closed") #s.timeout
-        data = bytedata.decode("utf-8").rstrip("\n").split("\n")#maybe catch the possible decode error?
+        data = (rb.restdata + bytedata.decode("utf-8")).split("\n")#maybe catch the possible decode error?
+        if data[-1] == "":#Ended on a newline -> desired behaviour, no rest data
+            rb.restdata = ""
+        else:#Ended during a message, store the rest
+            rb.restdata = data[-1]
+        data = data[:-1]
+
         ret = data.pop(0)
-        linebuffer.extend(data)
+        rb.linebuffer.extend(data)
         return ret
 
 def sockSend(socket, data):
@@ -36,7 +47,7 @@ def parseCoord(data):
         if len(data) == 2:
             try:   
                 (a,b) = (int(data[0]),int(data[1]))
-                if 0 <= a < 10 and 0 <= b < 10:
+                if 0 <= a < 15 and 0 <= b < 15:#TODO parametrize this
                     return (a,b)
                 else:
                     return None

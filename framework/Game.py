@@ -4,7 +4,7 @@ from enum import Enum
 from threading import Thread
 import random
 import time
-from Util import lbRecv, sockSend
+from Util import lbRecv, sockSend, RecvBuffer
 
 from Visualiser import Visualiser, VisualiserWrapper
 
@@ -150,13 +150,13 @@ class connClosedException(Exception):
     pass
 
 def readFrom(client):
-    return lbRecv(client["socket"], client["linebuffer"])
+    return lbRecv(client["socket"], client["recvbuffer"])
 
 
 class GameRunner(Thread):  
     #implement timeouts
 
-    #combineer socket en linebuffer in een object?
+    #combineer socket en recvbuffer in een object?
     #name, socket, addr
     def __init__(self, clients, viz = None, spectator = None):
         super(GameRunner, self).__init__()
@@ -166,7 +166,7 @@ class GameRunner(Thread):
         self.spectator = spectator
 
         for client in self.clients:
-            client["linebuffer"] = []
+            client["recvbuffer"] = RecvBuffer()
             #client["socket"].settimeout(None)
 
         self.BOARDSIZE = (15,)*2
