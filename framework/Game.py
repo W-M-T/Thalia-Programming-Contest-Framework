@@ -358,13 +358,15 @@ class GameRunner(Thread):
             #Water rounds
             for waterRound in WATERROUNDS:
                 writeTo(client, "CONFIG WATER ROUND {}".format(waterRound))
-
+            
             #Map
             for y in range(self.board.dims[1]):
                 for x in range(self.board.dims[0]):
                     el = self.board.board[x][y]
                     if el != Tile.Empty:
                         writeTo(client, "CONFIG TILE {} {}".format((x,y), el.name.upper()))
+            
+            writeTo(client, "START GAME")
 
 
     def run(self):

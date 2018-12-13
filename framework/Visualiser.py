@@ -330,6 +330,14 @@ class Visualiser():
     def setPlayerInfo(self, pID, info):
         self.playerInfo[pID] = info
 
+    def setPlayerName(self, pID, name):
+        (n, l, f) = self.playerInfo[pID]
+        self.playerInfo[pID] = (name, l, f)
+
+    def setPlayerLives(self, pID, lives):
+        (n, l, f) = self.playerInfo[pID]
+        self.playerInfo[pID] = (n, lives, f)
+
     def getPlayerInfo(self, pID):
         return self.playerInfo[pID]
 

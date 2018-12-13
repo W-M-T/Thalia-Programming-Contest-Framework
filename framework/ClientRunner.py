@@ -85,13 +85,12 @@ def isRequest(data):
 
 
 def updateViz(viz,data,response=None): #No parsing error handling for server data (has to be correct as a part of the framework)
-    print("Update the viz")
-    maybeConfig = stripFormat("CONFIG ", data)
+    global team
 
+    maybeConfig = stripFormat("CONFIG ", data)
     if maybeConfig is not None:
 
         maybeTile = stripFormat("TILE ", maybeConfig)
-        print("Update the tile")
         if maybeTile is not None:
             tokens = maybeTile.split(") ",1)
             maybeCoord = parseCoord(tokens[0]+")")
@@ -101,12 +100,42 @@ def updateViz(viz,data,response=None): #No parsing error handling for server dat
                 "TREE" : "TREE",
                 "EMPTY" : "DOT2"
             }
-            print(maybeCoord,lookup[tokens[1]])
-            print(viz.viz)
+            #print(maybeCoord,lookup[tokens[1]])
+            #print(viz.viz)
             viz.syncUpdate(Visualiser.changeByKey, maybeCoord, lookup[tokens[1]])
-            viz.syncUpdate(Visualiser.drawScreen)#Only update after receiving all
-        return
+            return
 
+        maybeName = stripFormat("PLAYER NAME ", maybeConfig)
+        if maybeName is not None:
+            tokens = maybeName.split(" ")
+            pNo = int(tokens[0][1:]) - 1
+            viz.syncUpdate(Visualiser.setPlayerName, pNo, tokens[1])
+            return
+
+        maybeLives = stripFormat("PLAYER LIVES ", maybeConfig)
+        if maybeLives is not None:
+            tokens = maybeLives.split(" ")
+            pNo = int(tokens[0][1:]) - 1
+            viz.syncUpdate(Visualiser.setPlayerLives, pNo, int(tokens[1]))
+            return
+
+        maybePlace = stripFormat("PLAYER PLACE ", maybeConfig)
+        if maybePlace is not None:
+            tokens = maybePlace.split(" ", 1)
+            pID = tokens[0]
+            coord = parseCoord(tokens[1])
+            viz.syncUpdate(Visualiser.addFloatByKey, pID, coord, "CHAR{}".format(tokens[0][1:]))
+            return
+
+        maybeYou = stripFormat("YOU ", maybeConfig)
+        if maybeYou is not None:
+            pNo = int(maybeYou[1:]) - 1
+            viz.syncUpdate(Visualiser.setPlayerName, pNo, team)
+            return
+
+    maybeStart = stripFormat("START GAME", data)
+    if maybeStart is not None:
+        viz.syncUpdate(Visualiser.drawScreen)
 
 def becomeLink(viz):
     global proc, sock
@@ -176,7 +205,7 @@ def readConfig(configfile):
 
 
 def work():
-    global proc, sock, debugfile
+    global proc, sock, debugfile, team
 
     parser = ArgumentParser()
     parser.add_argument("altconfig", nargs='?', default="config")
