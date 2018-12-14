@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 import configparser
 from Util import lbRecv, stripFormat, parseCoord, sockSend, RecvBuffer
 from Visualiser import Visualiser, VisualiserWrapper
+from Game import Dir
 
 #refactor:
 #move the parsing and viz update code to another file to keep this runner independent of the game
@@ -76,15 +77,18 @@ class gameEnded(Exception):
 
 
 def testEnd(data):
-    if data.find("GAME RESULT ") == 0:
+    if data.find("YOU WON") == 0 or data.find("YOU LOST") == 0:
         print("GAME OVER:",data)
         raise gameEnded
 
 def isRequest(data):
     return data.find("REQUEST MOVE") == 0
 
+def dontGiveBot(data):
+    return data.find("UPDATE DONE") == 0 or data.find("UPDATE BOMB PRIMED") == 0 #Not part of the official protocol, just for the visualiser
 
-def updateViz(viz,data,response=None): #No parsing error handling for server data (has to be correct as a part of the framework)
+
+def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (has to be correct as a part of the framework)
     global team
 
     maybeConfig = stripFormat("CONFIG ", data)
@@ -137,8 +141,74 @@ def updateViz(viz,data,response=None): #No parsing error handling for server dat
     if maybeStart is not None:
         viz.syncUpdate(Visualiser.drawScreen)
 
+    maybeUpdate = stripFormat("UPDATE ", data)
+    if maybeUpdate is not None:
+
+        maybeDone = stripFormat("DONE", maybeUpdate)
+        if maybeDone is not None:
+            viz.syncUpdate(Visualiser.drawScreen)
+
+        maybePlayerStatus = stripFormat("PLAYER STATUS ", maybeUpdate)
+        if maybePlayerStatus is not None:
+            tokens = maybePlayerStatus.split(" ", 1)
+            pID = int(tokens[0][1:]) - 1
+            status = tokens[1]
+            if status == "HIT":
+                viz.syncUpdate(Visualiser.decrPlayerLives, pID)
+            else: #Dead per definition
+                viz.syncUpdate(Visualiser.setPlayerLives, pID, 0)
+                #TODO create skull, remove player float
+            return
+
+        maybePlayerLoc = stripFormat("PLAYER LOC ", maybeUpdate)
+        if maybePlayerLoc is not None:
+            tokens = maybePlayerLoc.split(" ", 1)
+            pID = tokens[0]
+            coord = parseCoord(tokens[1])
+            vizbuffer.append((pID, coord))
+            return
+
+        maybeBombPlaced = stripFormat("BOMB PLACED ", maybeUpdate)
+        if maybeBombPlaced is not None:
+            coord = parseCoord(maybeBombPlaced)
+            viz.syncUpdate(Visualiser.addBomb, coord)
+            return
+
+        maybeBombExploded = stripFormat("BOMB EXPLODED ", maybeUpdate)
+        if maybeBombExploded is not None:
+            coord = parseCoord(maybeBombExploded)
+            viz.syncUpdate(Visualiser.explode, coord)
+            return
+
+        maybeBombPrimed = stripFormat("BOMB PRIMED ", maybeUpdate)
+        if maybeBombPrimed is not None:
+            coord = parseCoord(maybeBombPrimed)
+            viz.syncUpdate(Visualiser.primeBomb, coord)
+            return
+
+        maybeTileGone = stripFormat("TILE GONE ", maybeUpdate)
+        if maybeTileGone is not None:
+            coord = parseCoord(maybeTileGone)
+            viz.syncUpdate(Visualiser.changeByKey, coord, "BURNTREE")
+            return
+
+    maybeMove = stripFormat("REQUEST MOVE", data)
+    if maybeMove is not None:
+        #print(len(vizbuffer))
+        for item in vizbuffer:
+            #contains moves
+            pass
+        viz.syncUpdate(Visualiser.clearFire)
+        viz.syncUpdate(Visualiser.drawScreen)
+        vizbuffer = []
+
+
+
+
 def becomeLink(viz):
     global proc, sock
+
+    vizbuffer = []
     
     try:
 
@@ -146,25 +216,27 @@ def becomeLink(viz):
             #print("LOOPING")
 
             #SERVER -> BOT
+            #print("SERVER ->",end="")
+            #data = input()#lbRecv(sock, recvbuffer)
             data = lbRecv(sock, recvbuffer)
             if DEBUG:
                 print(data)
             else:
-                print(data, file=proc.stdin, flush=True)
-            updateViz(viz,data)
+                if not dontGiveBot(data):
+                    print(data, file=proc.stdin, flush=True)
+            updateViz(viz,vizbuffer,data)
 
             testEnd(data)
 
-            respond = isRequest(data)
+            respond = False#isRequest(data)
 
             if respond:
+                print("I need a response now")
                 #BOT -> SERVER
                 bot_resp = input() if DEBUG else proc.stdout.readline().rstrip("\n")
-                print(bot_resp)
+                print("> :", bot_resp)
                 sayToServer(bot_resp)
-                updateViz(viz,data,response=bot_resp)
 
-                testEnd(data)
 
     except gameEnded:
         pass

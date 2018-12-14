@@ -334,9 +334,13 @@ class Visualiser():
         (n, l, f) = self.playerInfo[pID]
         self.playerInfo[pID] = (name, l, f)
 
-    def setPlayerLives(self, pID, lives):
+    def setPlayerLives(self, pID, lives): #Maybe mutator function arguments would just be better
         (n, l, f) = self.playerInfo[pID]
         self.playerInfo[pID] = (n, lives, f)
+
+    def decrPlayerLives(self, pID):
+        (n, l, f) = self.playerInfo[pID]
+        self.playerInfo[pID] = (n, l - 1, f)
 
     def getPlayerInfo(self, pID):
         return self.playerInfo[pID]
@@ -367,6 +371,38 @@ class Visualiser():
     def changeByKey(self, coord, key):
         if key in self.img:
             self.drawTable[coord[1]][coord[0]] = self.img[key]
+
+    def explode(self, coord):#Ugly code
+        (XSIZE, YSIZE) = (len(self.drawTable[0]),len(self.drawTable))
+        self.removeBomb((coord[0],coord[1]))
+        if self.drawTable[coord[1]][coord[0]] == self.img["DOT2"]:
+                self.changeByKey((coord[0], coord[1]), "FIRE")
+        for y in range(coord[1]-1,-1,-1):
+            if self.drawTable[y][coord[0]] == self.img["DOT2"]:
+                self.changeByKey((coord[0], y), "FIRE")
+            elif self.drawTable[y][coord[0]] != self.img["FIRE"]:
+                break
+        for y in range(coord[1]+1,YSIZE):
+            if self.drawTable[y][coord[0]] == self.img["DOT2"]:
+                self.changeByKey((coord[0], y), "FIRE")
+            elif self.drawTable[y][coord[0]] != self.img["FIRE"]:
+                break
+        for x in range(coord[0]-1,-1,-1):
+            if self.drawTable[coord[1]][x] == self.img["DOT2"]:
+                self.changeByKey((x, coord[1]), "FIRE")
+            elif self.drawTable[coord[1]][x] != self.img["FIRE"]:
+                break
+        for x in range(coord[0]+1,XSIZE):
+            if self.drawTable[coord[1]][x] == self.img["DOT2"]:
+                self.changeByKey((x, coord[1]), "FIRE")
+            elif self.drawTable[coord[1]][x] != self.img["FIRE"]:
+                break
+
+    def clearFire(self):#Ugly code
+        for y, col in enumerate(self.drawTable):
+            for x, val in enumerate(col):
+                if self.drawTable[y][x] == self.img["FIRE"] or self.drawTable[y][x] == self.img["BURNTREE"]:
+                    self.changeByKey((x, y), "DOT2")
 
     def animateWaterIn(self,inset):
         image = self.img['WATER']
@@ -465,6 +501,7 @@ if __name__ == "__main__":
     v.setPlayerInfo(1,("Teamname",3,False))
     v.addFloat('p3', (6,9), v.img['CHAR3'])
     v.setPlayerInfo(2,("Teamname",3,False))
+    #v.explode((6,6))
     v.drawScreen()
     
 

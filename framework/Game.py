@@ -79,13 +79,6 @@ class Board:
         if playercount == 4:
             self.players["p4"]  = {"lives": lives, "pos": pos_options[3]}
 
-    def burnTile(self, coord):
-        (x,y) = coord
-        if board[x][y] == Tile.TREE:
-            board[x][y] = Tile.Empty
-
-        #Kill player
-
     def getExplodeTiles(self, coord):
         #Only + tiles
         #Other function for recursive effect
@@ -206,41 +199,57 @@ class GameRunner(Thread):
             raise GameEndException("Never readied up")
 
 
-    #improve this
-    def explode(self, coord):
+    def explodePlus(self, coord):
         self.viz.syncUpdate(Visualiser.changeByKey, coord, 'FIRE')
-        self.killCoord(*coord)
+        #self.killCoord(*coord)
+        deadtrees = []
+        hitbombs = []
 
         for y in range(coord[1]-1,-1,-1):
-            if not self.explodeHere(coord[0], y):
+            (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            hitbombs.extend(bomblist)
+            if not cont:
                 break
+        deadtrees.extend(treelist)
         for y in range(coord[1]+1,self.BOARDSIZE[1]):
-            if not self.explodeHere(coord[0], y):
+            (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            hitbombs.extend(bomblist)
+            if not cont:
                 break
-
+        deadtrees.extend(treelist)
         for x in range(coord[0]-1,-1,-1):
-            if not self.explodeHere(x, coord[1]):
+            (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            hitbombs.extend(bomblist)
+            if not cont:
                 break
-        for x in range(coord[0]+1,self.BOARDSIZE[1]):
-            if not self.explodeHere(x, coord[1]):
+        deadtrees.extend(treelist)
+        for x in range(coord[0]+1,self.BOARDSIZE[0]):
+            (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            hitbombs.extend(bomblist)
+            if not cont:
                 break
+        deadtrees.extend(treelist)
+        #print("CHAIN TO ",hitbombs)
+        return (deadtrees, hitbombs)
 
-        self.viz.syncUpdate(Visualiser.drawScreen)
 
     def explodeHere(self, x, y):
-        #return False if ended
+        #Return whether to continue the explosion in this direction, possible tree to remove, bombs to detonate
+        #return False and possible tree to remove if ended
         #return True if continue
-        self.killCoord(x,y)
+        #self.killCoord(x,y)
 
         if self.board.board[y][x].unbreakable:
-            return False
+            return (False, [], [])
         elif self.board.board[y][x] == Tile.Tree:
-            self.board.board[y][x] = Tile.Empty
-            self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'BURNTREE')
-            return False
+            return (False, [(x,y)], [])
         else:
             self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'FIRE')
-            return True
+
+            bombsHere = list(filter(lambda bomb: bomb["pos"] == (x,y), self.board.bombs))
+            if len(bombsHere) > 0:
+                self.removeBombCoord((x,y))
+            return (True, [], bombsHere)
 
     def killCoord(self, x, y):
         #TODO FIX THIS (bad)
@@ -249,6 +258,11 @@ class GameRunner(Thread):
             print("Killing",p)
             self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
             self.board.players[p]['lives'] = 0
+
+    def removeBombCoord(self, coord):
+        self.board.bombs = list(filter(lambda bomb: bomb["pos"] != coord, self.board.bombs))
+        self.viz.syncUpdate(Visualiser.removeBomb, coord)
+        print("Removed bomb at {}".format(coord))
 
     #TODO LOOK AT THIS
     def updateMapViz(self):
@@ -283,19 +297,22 @@ class GameRunner(Thread):
     def updatePlayerViz(self):
         moves = {}
         for player, info in self.board.players.items():
-            if info is not None:
-                moves[player] = info['pos']
+            moves[player] = info['pos']
         self.viz.syncUpdate(Visualiser.animateWalk, moves)
 
+    #Look at this
     def clearFires(self):
         for y in range(self.BOARDSIZE[1]):
             for x in range(self.BOARDSIZE[0]):
                 if self.board.board[y][x] == Tile.Empty:
                     self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'DOT2')
+        '''
         for p, info in self.board.players.items():
             if info == None:
                 self.viz.syncUpdate(Visualiser.removeFloat, p)
+        '''
 
+    #Look at this
     def doWater(self):
         self.clearFires()
         self.waterlevel += 1
@@ -314,32 +331,79 @@ class GameRunner(Thread):
 
     def doAct(self):
         #Clear fire, trees and skulls
-        self.clearFires()
+        #self.clearFires()
 
+        #Request action
+        for client in self.clients:
+            writeTo(client, "REQUEST MOVE")
+        '''
+        #Receive action
+        for client in self.clients:
+            response = readFrom(client)
+            print(client["name"], response)
+        print("Done receiving")
+        '''
+
+        #Parse, verify and do
+
+        '''
         #Perform actions
         for player, info in self.board.players.items():
-            if info is not None:
-                (x,y) = self.board.players[player]['pos']
-                choices = ([(1,0)] if x != 13 else []) + ([(0,1)] if y != 13 else []) + ([(-1,0)] if x != 1 else []) + ([(0,-1)] if y != 1 else [])
-                choices = list(filter((lambda coord: self.board.board[y+coord[1]][x+coord[0]] == Tile.Empty), choices))
-                (dx, dy) = random.choice(choices)
-                self.board.players[player]['pos'] = (x + dx, y + dy)
+            (x,y) = self.board.players[player]['pos']
+            choices = ([(1,0)] if x != 13 else []) + ([(0,1)] if y != 13 else []) + ([(-1,0)] if x != 1 else []) + ([(0,-1)] if y != 1 else [])
+            choices = list(filter((lambda coord: self.board.board[y+coord[1]][x+coord[0]] == Tile.Empty), choices))
+            (dx, dy) = random.choice(choices)
+            self.board.players[player]['pos'] = (x + dx, y + dy)
+        '''
         self.updatePlayerViz()
 
-    def primeBombs(self):
+    def tickBombs(self):
         for bomb in self.board.bombs:
+            bomb["timer"] = bomb["timer"] - 1
+
             if bomb['timer'] == 1:
+                for client in self.clients:
+                    writeTo(client, "UPDATE BOMB PRIMED {}".format(bomb["pos"]))
                 self.viz.syncUpdate(Visualiser.primeBomb, bomb['pos'])
 
-    def doBlow(self):
-        self.primeBombs()
-        self.explode((1, 1))
+    def detonateBombs(self):
+        boomlist = list(filter(lambda bomb: bomb["timer"] <= 0, self.board.bombs))
+        removeTiles = []
+
+        while len(boomlist) > 0:
+            curBoomLoc = boomlist.pop(0)["pos"]
+            self.removeBombCoord(curBoomLoc)
+            for client in self.clients:
+                writeTo(client, "UPDATE BOMB EXPLODED {}".format(curBoomLoc))
+
+            (deadtrees, hitbombs) = self.explodePlus(curBoomLoc)
+            boomlist.extend(hitbombs)
+            removeTiles.extend(deadtrees)
+        
+        for tree in removeTiles:
+            (x,y) = tree
+            self.board.board[y][x] = Tile.Empty
+            self.viz.syncUpdate(Visualiser.changeByKey, tree, 'BURNTREE')
+            for client in self.clients:
+                writeTo(client, "UPDATE TILE GONE {}".format(tree))
+
+        self.viz.syncUpdate(Visualiser.drawScreen)
+
+
+
+    def doBombs(self):
+        self.tickBombs()
+        self.detonateBombs()
+        #self.explode((1, 1))
 
     def doTurn(self):
+        self.clearFires()
         self.doAct()
         #time.sleep(1)
-        self.doBlow()
-        time.sleep(0.1)
+        self.doBombs()
+        for client in self.clients:
+            writeTo(client, "UPDATE DONE")
+        time.sleep(0.5)
 
     def doConfig(self):
         #Inform names and ids
@@ -378,20 +442,48 @@ class GameRunner(Thread):
             #combinations(self.clients, len(self.clients) - 1)
             for client in self.clients:
                 writeTo(client,"CHALLENGED BY {}".format("a bunch of others"))
-            #writeTo(self.clientA,"CHALLENGED BY {}".format(self.clientB["name"]))
-            #writeTo(self.clientB,"CHALLENGED BY {}".format(self.clientA["name"]))
-
-            #self.waitReady()
+            
+            self.waitReady()
 
             self.doConfig()
 
-            '''
             time.sleep(2)
-            self.board.bombs.append({'pos':(7,7),'timer':1})
-            self.viz.syncUpdate(Visualiser.addBomb, (7,7))
-            for i in range(5):
-                self.doTurn()
+
             '''
+            self.board.board[7][4] = Tile.Tree
+            self.viz.syncUpdate(Visualiser.changeByKey, (4,7), 'TREE')
+            self.board.board[7][3] = Tile.Tree
+            self.viz.syncUpdate(Visualiser.changeByKey, (3,7), 'TREE')
+            
+            self.board.bombs.append({'pos':(5,7),'timer':3})
+            self.viz.syncUpdate(Visualiser.addBomb, (5,7))
+            self.viz.syncUpdate(Visualiser.drawScreen)
+            '''
+            self.board.bombs.append({'pos':(7,7),'timer':2})
+            self.viz.syncUpdate(Visualiser.addBomb, (7,7))
+            for client in self.clients:
+                writeTo(client,"UPDATE BOMB PLACED {}".format((7,7)))
+            self.board.bombs.append({'pos':(9,7),'timer':11})
+            self.viz.syncUpdate(Visualiser.addBomb, (9,7))
+            for client in self.clients:
+                writeTo(client,"UPDATE BOMB PLACED {}".format((9,7)))
+                writeTo(client,"UPDATE DONE")
+            self.viz.syncUpdate(Visualiser.drawScreen)
+            time.sleep(1.1)
+            for i in range(5):
+                print("TURN {}".format(i))
+                self.doTurn()
+
+            self.board.bombs.append({'pos':(7,7),'timer':2})
+            self.viz.syncUpdate(Visualiser.addBomb, (7,7))
+            for client in self.clients:
+                writeTo(client,"UPDATE BOMB PLACED {}".format((7,7)))
+                writeTo(client,"UPDATE DONE")
+            self.viz.syncUpdate(Visualiser.drawScreen)
+            time.sleep(1.1)
+            for i in range(5,10):
+                print("TURN {}".format(i))
+                self.doTurn()
             
             
         except (GameEndException,connClosedException) as e:
@@ -402,7 +494,7 @@ class GameRunner(Thread):
             pass
 
         #informSpectator(self.spectator,"end")
-
+        print("Like tears, in rain. Time to die.")
         time.sleep(1)
         #self.board.players['p1']['pos'] = (7,)*2
         #self.updatePlayerViz()

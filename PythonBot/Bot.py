@@ -72,8 +72,8 @@ class Bot:
 
     def report_move(self):
         move = self.do_move()
-        dir: Tuple[int, int] = move['dir']
-        bomb: bool = move['bomb']
+        dir = move['dir'] #: Tuple[int, int]
+        bomb = move['bomb'] #: bool 
 
         if max(dir) > 1 or min(dir) < -1:
             raise ValueError("one of the dims is out of range")

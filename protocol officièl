@@ -40,8 +40,10 @@ HIT
 
 
 tileitem =
-WALL
+WATER
 TREE
+MOUNTAIN
+WATER
 
 
 pID =
