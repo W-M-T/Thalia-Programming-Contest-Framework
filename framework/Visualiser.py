@@ -398,7 +398,7 @@ class Visualiser():
             elif self.drawTable[coord[1]][x] != self.img["FIRE"]:
                 break
 
-    def clearFire(self):#Ugly code
+    def clearFire(self):
         for y, col in enumerate(self.drawTable):
             for x, val in enumerate(col):
                 if self.drawTable[y][x] == self.img["FIRE"] or self.drawTable[y][x] == self.img["BURNTREE"]:

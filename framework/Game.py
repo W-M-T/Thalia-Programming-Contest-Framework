@@ -332,21 +332,23 @@ class GameRunner(Thread):
     def doAct(self):
         #Clear fire, trees and skulls
         #self.clearFires()
-
+        
         #Request action
         for client in self.clients:
             writeTo(client, "REQUEST MOVE")
+
         '''
+        responses = []
         #Receive action
         for client in self.clients:
             response = readFrom(client)
             print(client["name"], response)
         print("Done receiving")
-        '''
+        
 
         #Parse, verify and do
 
-        '''
+        
         #Perform actions
         for player, info in self.board.players.items():
             (x,y) = self.board.players[player]['pos']
@@ -354,8 +356,9 @@ class GameRunner(Thread):
             choices = list(filter((lambda coord: self.board.board[y+coord[1]][x+coord[0]] == Tile.Empty), choices))
             (dx, dy) = random.choice(choices)
             self.board.players[player]['pos'] = (x + dx, y + dy)
-        '''
+        
         self.updatePlayerViz()
+        '''
 
     def tickBombs(self):
         for bomb in self.board.bombs:
@@ -398,8 +401,10 @@ class GameRunner(Thread):
 
     def doTurn(self):
         self.clearFires()
+        print("time to act")
         self.doAct()
         #time.sleep(1)
+        print("time to bomb")
         self.doBombs()
         for client in self.clients:
             writeTo(client, "UPDATE DONE")
