@@ -107,7 +107,7 @@ class Board:
 
     def isWalkable(self, coord):
         (x,y) = coord
-        return self.board[x][y] == Empty and not self.isBombHere(coord)
+        return self.board[x][y] == Tile.Empty and not self.isBombHere(coord)
 
     def onBoard(self, coord):
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
@@ -393,10 +393,14 @@ class GameRunner(Thread):
                 print("CONFLICT")
                 continue
             else:
-                movedict[desiredmove[0]] = desiredmove[1]
-                self.board.players[desiredmove[0]]["pos"] = desiredmove[1]
-                for client in self.clients:
-                    writeTo(client,"UPDATE PLAYER LOC {} {}".format(desiredmove[0], desiredmove[1]))
+                if not self.board.isWalkable(desiredmove[1]):
+                    print("TRIED TO WALK INTO A WALL")
+                    continue
+                else:
+                    movedict[desiredmove[0]] = desiredmove[1]
+                    self.board.players[desiredmove[0]]["pos"] = desiredmove[1]
+                    for client in self.clients:
+                        writeTo(client,"UPDATE PLAYER LOC {} {}".format(desiredmove[0], desiredmove[1]))
 
         self.viz.syncUpdate(Visualiser.animateWalk, movedict)
 
@@ -520,6 +524,7 @@ class GameRunner(Thread):
             self.viz.syncUpdate(Visualiser.addBomb, (5,7))
             self.viz.syncUpdate(Visualiser.drawScreen)
             '''
+            '''
             self.board.bombs.append({'pos':(7,7),'timer':2})
             self.viz.syncUpdate(Visualiser.addBomb, (7,7))
             for client in self.clients:
@@ -545,7 +550,12 @@ class GameRunner(Thread):
             for i in range(5,10):
                 print("TURN {}".format(i))
                 self.doTurn()
-            
+            '''
+            iteration = 0
+            while True:
+                print("TURN {}".format(iteration))
+                self.doTurn()
+                iteration = iteration + 1
             
         except (GameEndException,connClosedException) as e:
             print(e)
