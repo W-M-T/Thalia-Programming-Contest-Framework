@@ -117,7 +117,10 @@ class Bot:
                 tuple(map(operator.add,
                           self.board.players[self.you]['pos'],
                           direction))):
-            raise ValueError("This is not a valid location")
+            raise ValueError("This is not a valid location: {} {} {}".format(self.board.players[self.you]['pos'],
+                          direction, tuple(map(operator.add,
+                          self.board.players[self.you]['pos'],
+                          direction))))
 
         if bomb:
             print("BOMBWALK {}".format(Bot.format_dir(direction)))

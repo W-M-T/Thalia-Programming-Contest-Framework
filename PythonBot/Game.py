@@ -25,7 +25,7 @@ class Board:
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
 
     def get(self, coord):
-        return self.board[coord[0]][coord[1]]
+        return self.board[coord[1]][coord[0]]
 
     def set(self, coord, val):
         self.board[coord[0]][coord[1]] = val
