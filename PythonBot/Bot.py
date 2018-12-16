@@ -81,8 +81,8 @@ class Bot:
         elif tokens[0] == 'START':
             self.initialise()
         elif tokens[0] == 'REQUEST':
-            for b_coord, b_timer in self.board.bombs:
-                self.board.bombs[b_coord] = b_timer - 1
+            for b_coord in self.board.bombs.keys():
+                self.board.bombs[b_coord] -= 1
             self.report_move()
         elif tokens[0] == 'UPDATE':
             self.handle_update(tokens[1])
@@ -139,7 +139,7 @@ class Bot:
     @staticmethod
     def format_dir(coord: Tuple[int, int]):
         """Return a direction according to a coord"""
-        dirs = {(0, 1): "UP", (0, -1): "DOWN",
+        dirs = {(0, -1): "UP", (0, 1): "DOWN",
                 (-1, 0): "LEFT", (1, 0): "RIGHT",
                 (0, 0): "STAY"}
         return dirs[coord]
