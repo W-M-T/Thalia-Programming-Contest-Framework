@@ -12,7 +12,6 @@ This script has an optional argument to use another config file.
 In this directory you will also find a config file. By changing it you can configure:
 - The name of your team
 - Whether to enable the clientside visualiser
-- Whether to write the bot stderr to a file (you can use this to debug your bot)
 - Where to connect to the server (you probably won't need to change this)
 - What command to run to run your bot.
 
@@ -27,11 +26,6 @@ To test we recommend to not show debug output of the `ClientRunner` and not
 show a visualiser. Also create two config files both with different names to 
 see the difference between these two bots. Let these two bots join the same 
 room and play a match.
-
-## I want use my own language
-You can find a copy of the protocol in the repo. And you can use the example 
-bots as reference. But keep in mind that this will take a significant amount of
-time and you will not have much left to develop the actual bot.
 
 ## Bomberman rules
 - The map is 14x14 tiles
@@ -60,3 +54,8 @@ time and you will not have much left to develop the actual bot.
 - Work iteratively, you don't have much time
 - Implementing Minimax will take significant time and probably won't be worth it
 - The water is very dangerous so really watch out for that
+
+## I want use my own language
+You can find a copy of the protocol in the repo. And you can use the example 
+bots as reference. But keep in mind that this will take a significant amount of
+time and you will not have much left to develop the actual bot.
