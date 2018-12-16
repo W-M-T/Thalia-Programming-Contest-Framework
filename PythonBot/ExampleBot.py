@@ -13,7 +13,7 @@ class ExampleBot(Bot):
 
     def do_move(self):
         return {"dir": random.choice(self.get_valid_dirs()),
-                "bomb": random.random() > 0.1}
+                "bomb": random.random() < 0.1}
 
 
 if __name__ == "__main__":
