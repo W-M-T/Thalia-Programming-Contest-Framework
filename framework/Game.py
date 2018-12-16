@@ -13,6 +13,7 @@ MINTURNTIME      = 0.5
 
 LIVES = 3
 WATERROUNDS = [40,60,80,100]
+BOMBTIMER = 7
 
 
 class Tile(Enum):
@@ -30,6 +31,12 @@ class Dir(Enum):
     LEFT    = (-1, 0)
     DOWN    = (0, 1)
     RIGHT   = (1, 0)
+    STAY    = (0, 0)
+
+    @property
+    def isChange(self):
+        return self in [Dir.UP, Dir.LEFT, Dir.DOWN, Dir.RIGHT]
+    
     
 
 class GameEndException(Exception):
@@ -85,7 +92,7 @@ class Board:
         pass
 
     def isBombHere(self, coord):
-        return any(lambda bomb: bomb["pos"] == coord)
+        return any(map(lambda bomb: bomb["pos"] == coord,self.bombs))
 
     def getBombHere(self, coord):
         bombsHere = list(filter(lambda bomb: bomb["pos"] == coord))
@@ -94,14 +101,13 @@ class Board:
         else:
             return bombsHere[0]
 
-    def getPlayersHere(self, coord):
-        #Return players here
-        pass
-
+    def isPlayersHere(self, coord):
+        playerInfos = list(p[1] for p in self.players.items())
+        return any(map(lambda player: player["pos"] == coord, playerInfos))
 
     def isWalkable(self, coord):
         (x,y) = coord
-        return self.board[x][y] == Empty and not isBombHere(coord)
+        return self.board[x][y] == Empty and not self.isBombHere(coord)
 
     def onBoard(self, coord):
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
@@ -158,8 +164,9 @@ class GameRunner(Thread):
         self.viz = VisualiserWrapper(viz)
         self.spectator = spectator
 
-        for client in self.clients:
+        for k, client in enumerate(self.clients):
             client["recvbuffer"] = RecvBuffer()
+            client["pID"] = "p{}".format(k+1)
             #client["socket"].settimeout(None)
 
         self.BOARDSIZE = (15,)*2
@@ -200,6 +207,7 @@ class GameRunner(Thread):
 
 
     def explodePlus(self, coord):
+        #TODO explode center
         self.viz.syncUpdate(Visualiser.changeByKey, coord, 'FIRE')
         #self.killCoord(*coord)
         deadtrees = []
@@ -337,18 +345,50 @@ class GameRunner(Thread):
         for client in self.clients:
             writeTo(client, "REQUEST MOVE")
 
-        '''
+        
         responses = []
         #Receive action
         for client in self.clients:
             response = readFrom(client)
-            print(client["name"], response)
+            #print(client["name"], response)
+            responses.append((client,response))
         print("Done receiving")
         
 
         #Parse, verify and do
+        walktiles = []
+        desiredmoves = []
+        placedbombs = []
+        for response in responses:
+            tokens = response[1].split(" ",1)
+            if tokens[0] not in ["WALK","BOMBWALK"]:
+                print("Error wrong bot command",response)
+                continue
+            else:
+                if tokens[0] == "BOMBWALK":
+                    placedbombs.append(self.board.players[response[0]["pID"]]["pos"])
+                if tokens[1] not in Dir.__members__.keys():
+                    print("Error wrong direction format",response)
+                    continue
+                else:
+                    delta = Dir[tokens[1]].value
+                    #print(delta,Dir[tokens[1]],self.board.players[response[0]["pID"]])
+                    walktile = tuple(map(sum,zip(delta,self.board.players[response[0]["pID"]]["pos"])))
+                    print(walktile)
+                    walktiles.append(walktile)
+                    desiredmoves.append((response[0]["pID"],walktile))
 
-        
+        for placedbomb in placedbombs:
+            self.board.bombs.append({"pos":placedbomb,"timer":BOMBTIMER+1})
+            self.viz.syncUpdate(Visualiser.addBomb, placedbomb)
+            for client in self.clients:
+                writeTo(client,"UPDATE BOMB PLACED {}".format(placedbomb))
+
+        self.viz.syncUpdate(Visualiser.drawScreen)
+        #for (p, desmove) in desiredmoves:
+
+
+        '''
         #Perform actions
         for player, info in self.board.players.items():
             (x,y) = self.board.players[player]['pos']
@@ -356,9 +396,9 @@ class GameRunner(Thread):
             choices = list(filter((lambda coord: self.board.board[y+coord[1]][x+coord[0]] == Tile.Empty), choices))
             (dx, dy) = random.choice(choices)
             self.board.players[player]['pos'] = (x + dx, y + dy)
-        
-        self.updatePlayerViz()
         '''
+        
+        #self.updatePlayerViz()
 
     def tickBombs(self):
         for bomb in self.board.bombs:
@@ -412,17 +452,17 @@ class GameRunner(Thread):
 
     def doConfig(self):
         #Inform names and ids
-        for no, client in enumerate(self.clients):
-            writeTo(client, "CONFIG YOU p{}".format(no+1))
-            for no2, client2 in enumerate(self.clients):
-                if no != no2:
-                    writeTo(client, "CONFIG PLAYER NAME p{} {}".format(no2+1, client2["name"]))
+        for client in self.clients:
+            writeTo(client, "CONFIG YOU {}".format(client["pID"]))
+            for client2 in self.clients:
+                if client["pID"] != client2["pID"]:
+                    writeTo(client, "CONFIG PLAYER NAME {} {}".format(client2["pID"], client2["name"]))
 
             #Inform location and lives
-            for no2, client2 in enumerate(self.clients):
-                character = self.board.players["p{}".format(no2+1)]
-                writeTo(client, "CONFIG PLAYER PLACE p{} {}".format(no2+1, character["pos"]))
-                writeTo(client, "CONFIG PLAYER LIVES p{} {}".format(no2+1, character["lives"]))
+            for client2 in self.clients:
+                character = self.board.players["{}".format(client2["pID"])]
+                writeTo(client, "CONFIG PLAYER PLACE {} {}".format(client2["pID"], character["pos"]))
+                writeTo(client, "CONFIG PLAYER LIVES {} {}".format(client2["pID"], character["lives"]))
 
             #Water rounds
             for waterRound in WATERROUNDS:

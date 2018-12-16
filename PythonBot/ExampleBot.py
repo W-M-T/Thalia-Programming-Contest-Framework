@@ -17,5 +17,9 @@ class ExampleBot(Bot):
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
+    print("[StdErr test]", file=sys.stderr)
+=======
+>>>>>>> 399e31b5c4ae52fbe376c8f1548411f62f6d8ec2
     sys.stderr.flush()
     ExampleBot().run()
