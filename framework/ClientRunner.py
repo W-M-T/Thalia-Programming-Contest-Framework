@@ -45,7 +45,7 @@ def enqueue_output(out, queue):
     for line in iter(out.readline, b''): #This will infinite loop when the bot ends. Prevent this.
         if len(line) == 0:
             break
-        print("\033[0;33m>>" + line + "\033[0m",end="")
+        print("\033[0;33m>>",line, end="\033[0m")
         queue.put(line)
     print("PLEASE")
     out.close()
@@ -251,7 +251,7 @@ def becomeLink(viz):
 
             testEnd(data)
 
-            respond = False#isRequest(data)
+            respond = isRequest(data)
 
             if respond:
                 print("I need a response now")

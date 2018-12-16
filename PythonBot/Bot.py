@@ -6,6 +6,10 @@ from typing import List, Tuple
 
 from Game import Board, Tile
 
+def log(text):
+    print(text,file=sys.stderr)
+    sys.stderr.flush()
+
 
 class Bot:
     def __init__(self):
