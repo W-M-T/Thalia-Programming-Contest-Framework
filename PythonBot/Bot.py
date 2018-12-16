@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import operator
+import sys
 from typing import List, Tuple
 
 from Game import Board, Tile
@@ -14,19 +15,30 @@ class Bot:
         self.water_round = None
         self.you = None
 
-    def handle_config(self, config_info: List[str]):
+    def handle_config(self, config_info: str):
+        config_info = config_info.split(maxsplit=3)
         if config_info[0] == "WATER" and config_info[1] == "ROUND":
             self.water_round = int(config_info[2])
 
         elif config_info[0] == "TILE":
-            coord = Bot.get_coord(config_info[1])
-            self.board.set(coord, Tile[config_info[2]])
+            coord = Bot.get_coord(config_info[1] + config_info[2])
+            lookup = {
+                "WATER": Tile.Water,
+                "MOUNTAIN": Tile.Mountain,
+                "TREE": Tile.Tree,
+                "EMPTY": Tile.Empty
+            }
+            self.board.set(coord, lookup[config_info[3]])
 
         elif config_info[0] == "PLAYER":
-            p_id = int(config_info[2])
+            p_id = config_info[2]
+
+            if p_id not in self.board.players:
+                self.board.players[p_id] = {'name': None, 'pos': None,
+                                            'lives': None}
 
             if config_info[1] == "NAME":
-                self.board.players[p_id] = {'lives': None, 'pos': None}
+                self.board.players[p_id]['name'] = config_info[3]
             elif config_info[1] == "PLACE":
                 self.board.players[p_id]['pos'] = Bot.get_coord(config_info[3])
             elif config_info[1] == "LIVES":
@@ -35,16 +47,20 @@ class Bot:
         elif config_info[0] == "YOU":
             self.you = config_info[1]
 
-    def handle_update(self, update_info: List[str]):
+    def handle_update(self, update_info: str):
+        update_info = update_info.split(maxsplit=2)
         if update_info[0] == "PLAYER":
-            p_id = int(update_info[2])
+            user_data = update_info[2].split(maxsplit=1)
+            p_id = user_data[0]
 
             if update_info[1] == "LOC":
-                self.board.players[p_id]['pos'] = Bot.get_coord(update_info[2])
+                self.board.players[p_id]['pos'] = Bot.get_coord(user_data[1])
+
             elif update_info[1] == "STATUS":
-                if update_info[3] == "HIT":
+                if user_data[1] == "HIT":
                     self.board.players[p_id]['lives'] -= 1
-                elif update_info[3] == "DEAD":
+
+                elif user_data[1] == "DEAD":
                     self.board.players[p_id]['lives'] = 0
 
         if update_info[0] == "BOMB":
@@ -55,15 +71,17 @@ class Bot:
 
     def handle_command(self, text: str):
         """Handle the server's message."""
-        tokens = text.strip().split()
+        print(text, file=sys.stderr, flush=True)
+
+        tokens = text.strip().split(maxsplit=1)
         if tokens[0] == 'CONFIG':
-            self.handle_config(tokens[1:])
-        elif tokens[0] == 'START' and tokens[1] == "GAME":
+            self.handle_config(tokens[1])
+        elif tokens[0] == 'START':
             self.initialise()
-        elif tokens[0] == 'REQUEST' and tokens[1] == "MOVE":
+        elif tokens[0] == 'REQUEST':
             self.report_move()
         elif tokens[0] == 'UPDATE':
-            self.handle_update(tokens[1:])
+            self.handle_update(tokens[1])
         elif tokens[0] == "YOU":
             self.done = True
 
@@ -72,8 +90,8 @@ class Bot:
 
     def report_move(self):
         move = self.do_move()
-        dir = move['dir'] #: Tuple[int, int]
-        bomb = move['bomb'] #: bool 
+        dir = move['dir']  #: Tuple[int, int]
+        bomb = move['bomb']  #: bool
 
         if max(dir) > 1 or min(dir) < -1:
             raise ValueError("one of the dims is out of range")
@@ -86,8 +104,10 @@ class Bot:
 
         if bomb:
             print("BOMBWALK {}".format(Bot.format_dir(dir)))
+            print("BOMBWALK {}".format(Bot.format_dir(dir)), file=sys.stderr, flush=True)
         else:
             print("WALK {}".format(Bot.format_dir(dir)))
+            print("WALK {}".format(Bot.format_dir(dir)), file=sys.stderr, flush=True)
 
     def initialise(self):
         pass
@@ -95,7 +115,7 @@ class Bot:
     def run(self):
         """Run the bot."""
         self.done = False
-        while self.done != True:
+        while not self.done:
             command = input()
             self.handle_command(command)
 
@@ -123,7 +143,7 @@ class Bot:
     @staticmethod
     def format_coord(coord: Tuple[int, int]):
         """Return a properly formatted coordinate string."""
-        return "(" + str(coord[0]) + "," + str(coord[1]) + ")"
+        return "(" + str(coord[0]) + ", " + str(coord[1]) + ")"
 
     @staticmethod
     def get_coord(coord_str: str) -> Tuple[int, int]:
