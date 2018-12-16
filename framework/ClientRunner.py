@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
 from subprocess import Popen, PIPE, STDOUT, DEVNULL
+from queue import Queue, Empty
+from threading  import Thread
+import sys
+import select
 import os
 import signal
 import socket
@@ -20,7 +24,8 @@ sock = None
 recvbuffer = RecvBuffer()
 SHELLMODE = True
 
-DEBUG = True
+DEBUG = False
+stderr_queue = Queue()
 debugfile = None
 
 def cleanup():
@@ -35,6 +40,22 @@ def cleanup():
 import atexit
 atexit.register(cleanup)
 
+def enqueue_output(out, queue):
+    global proc
+    for line in iter(out.readline, b''): #This will infinite loop when the bot ends. Prevent this.
+        if len(line) == 0:
+            break
+        print("\033[0;33m>>" + line + "\033[0m",end="")
+        queue.put(line)
+    print("PLEASE")
+    out.close()
+
+def print_entire_stderr():
+    while True:
+        try:
+            print("\033[0;33m>>",stderr_queue.get_nowait(), end="\033[0m")
+        except Empty:
+            break
 
 def sayToServer(data):
     global sock
@@ -201,6 +222,7 @@ def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (h
         viz.syncUpdate(Visualiser.clearFire)
         viz.syncUpdate(Visualiser.drawScreen)
         vizbuffer = []
+        return
 
 
 
@@ -219,6 +241,7 @@ def becomeLink(viz):
             #print("SERVER ->",end="")
             #data = input()#lbRecv(sock, recvbuffer)
             data = lbRecv(sock, recvbuffer)
+            print(data)
             if DEBUG:
                 print(data)
             else:
@@ -291,8 +314,17 @@ def work():
     if debug_on:
         debugfile = open(debug_file,"w")
         #Write initial line containing time
-    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
+    #proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
+    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
 
+    stderr_thread = Thread(target=enqueue_output, args=(proc.stderr, stderr_queue))
+    stderr_thread.daemon = True # thread dies with the program
+    stderr_thread.start()
+
+    #print_entire_stderr()
+
+    print(proc.stdout)
+    print(proc.stderr)
     print("[?] Enter room key:\n> ",end="")
     roomkey = input().strip()
 

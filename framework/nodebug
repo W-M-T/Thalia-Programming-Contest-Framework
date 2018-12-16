@@ -1,0 +1,27 @@
+[TEAM]
+TeamName          = replaceme
+RandPostfixNr     = True
+
+#When RandPostfixNr is enabled, "teamname" will become "teamname(x)" with a random number for x
+
+
+[VISUALISER]
+EnableVisualiser  = True
+
+
+[BOT]
+WriteStdErrToFile = False
+StdErrFile        = ./stderr.txt
+RunCommand        = ./../PythonBot/ExampleBot.py
+
+
+[SERVER]
+ServerAddress     = localhost:42042
+#ServerAddress     = zeeslag.thalia.nu:42042
+
+
+#localhost:42042
+
+# Example commands:
+# ./starterbot.py
+# java -jar ./starterbot.jar
