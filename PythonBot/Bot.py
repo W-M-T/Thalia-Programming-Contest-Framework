@@ -76,6 +76,10 @@ class Bot:
                 if coord in self.board.bombs:
                     del self.board.bombs[coord]
 
+        if update_info[0] == "TILE" and update_info[1] == "GONE":
+            coord = Bot.get_coord(update_info[2])
+            self.board.set(coord, Tile.Empty)
+
     def handle_command(self, text: str):
         """Handle the server's message."""
 
