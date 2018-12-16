@@ -32,7 +32,7 @@ TILE GONE coord
 
 result =
 YOU WON
-YOU LOST [(DISQUALIFED: reason)]
+YOU LOST [(DISQUALIFIED: reason)]
 
 statusinfo =
 DEAD [(DROWNED)]

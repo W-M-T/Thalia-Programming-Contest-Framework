@@ -175,7 +175,7 @@ class GameRunner(Thread):
         self.board.placePlayers(len(clients),LIVES)
 
         for p, pinfo in self.board.players.items():
-            pos = pinfo ["pos"]
+            pos = pinfo["pos"]
             self.viz.syncUpdate(Visualiser.addFloatByKey, p, pos, 'CHAR{}'.format(p.lstrip("p")))
 
         self.updatePlayerInfoViz()
@@ -374,7 +374,6 @@ class GameRunner(Thread):
                     delta = Dir[tokens[1]].value
                     #print(delta,Dir[tokens[1]],self.board.players[response[0]["pID"]])
                     walktile = tuple(map(sum,zip(delta,self.board.players[response[0]["pID"]]["pos"])))
-                    print(walktile)
                     walktiles.append(walktile)
                     desiredmoves.append((response[0]["pID"],walktile))
 
@@ -383,6 +382,23 @@ class GameRunner(Thread):
             self.viz.syncUpdate(Visualiser.addBomb, placedbomb)
             for client in self.clients:
                 writeTo(client,"UPDATE BOMB PLACED {}".format(placedbomb))
+
+        movedict = {}
+        print("Desired moves",desiredmoves)
+        for desiredmove in desiredmoves:
+            othersmoves = list(filter(lambda othermove: othermove != desiredmove, desiredmoves))
+            conflictmoves = list(filter(lambda othermove: othermove[1] == desiredmove[1],othersmoves))
+            print(desiredmove,"and others",othersmoves,"give conflicts",conflictmoves)
+            if len(conflictmoves) > 0:
+                print("CONFLICT")
+                continue
+            else:
+                movedict[desiredmove[0]] = desiredmove[1]
+                self.board.players[desiredmove[0]]["pos"] = desiredmove[1]
+                for client in self.clients:
+                    writeTo(client,"UPDATE PLAYER LOC {} {}".format(desiredmove[0], desiredmove[1]))
+
+        self.viz.syncUpdate(Visualiser.animateWalk, movedict)
 
         self.viz.syncUpdate(Visualiser.drawScreen)
         #for (p, desmove) in desiredmoves:

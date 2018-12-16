@@ -168,6 +168,7 @@ def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (h
         maybeDone = stripFormat("DONE", maybeUpdate)
         if maybeDone is not None:
             viz.syncUpdate(Visualiser.drawScreen)
+            vizbuffer = []
 
         maybePlayerStatus = stripFormat("PLAYER STATUS ", maybeUpdate)
         if maybePlayerStatus is not None:
