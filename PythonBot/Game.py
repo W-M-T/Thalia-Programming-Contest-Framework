@@ -18,7 +18,7 @@ class Board:
         self.dims = dims
         self.board = [[Tile.Empty for _ in range(dims[0])] for _ in
                       range(dims[1])]
-        self.bombs = []  # Lijst van dicts met pos en timer
+        self.bombs = {}  # dict van pos naar timer
         self.players = {}  # dict van pIDs naar pos en lives
 
     def on_board(self, coord):

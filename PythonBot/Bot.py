@@ -7,8 +7,7 @@ from typing import List, Tuple
 from Game import Board, Tile
 
 def log(text):
-    print(text,file=sys.stderr)
-    sys.stderr.flush()
+    print(text, file=sys.stderr, flush=True)
 
 
 class Bot:
@@ -71,16 +70,24 @@ class Bot:
             coord = Bot.get_coord(update_info[2])
 
             if update_info[1] == "PLACED":
-                self.board.bombs.append({'pos': coord, 'timer': 1})
+                self.board.bombs[coord] = 8
+            elif update_info[1] == "EXPLODED":
+                del self.board.bombs[coord]
 
     def handle_command(self, text: str):
         """Handle the server's message."""
+
         tokens = text.strip().split(maxsplit=1)
+
         if tokens[0] == 'CONFIG':
             self.handle_config(tokens[1])
         elif tokens[0] == 'START':
             self.initialise()
         elif tokens[0] == 'REQUEST':
+            for b_coord in self.board.bombs.keys():
+                self.board.bombs[b_coord] -= 1
+                if self.board.bombs[b_coord] == 0:
+                    log("bomb exploded at: " + str(b_coord))
             self.report_move()
         elif tokens[0] == 'UPDATE':
             self.handle_update(tokens[1])
@@ -137,7 +144,7 @@ class Bot:
     @staticmethod
     def format_dir(coord: Tuple[int, int]):
         """Return a direction according to a coord"""
-        dirs = {(0, 1): "UP", (0, -1): "DOWN",
+        dirs = {(0, -1): "UP", (0, 1): "DOWN",
                 (-1, 0): "LEFT", (1, 0): "RIGHT",
                 (0, 0): "STAY"}
         return dirs[coord]
