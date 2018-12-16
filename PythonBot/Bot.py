@@ -67,16 +67,22 @@ class Bot:
             coord = Bot.get_coord(update_info[2])
 
             if update_info[1] == "PLACED":
-                self.board.bombs.append({'pos': coord, 'timer': 1})
+                self.board.bombs[coord] = 7
+            elif update_info[1] == "EXPLODED":
+                del self.board.bombs[coord]
 
     def handle_command(self, text: str):
         """Handle the server's message."""
+
         tokens = text.strip().split(maxsplit=1)
+
         if tokens[0] == 'CONFIG':
             self.handle_config(tokens[1])
         elif tokens[0] == 'START':
             self.initialise()
         elif tokens[0] == 'REQUEST':
+            for b_coord, b_timer in self.board.bombs:
+                self.board.bombs[b_coord] = b_timer - 1
             self.report_move()
         elif tokens[0] == 'UPDATE':
             self.handle_update(tokens[1])
