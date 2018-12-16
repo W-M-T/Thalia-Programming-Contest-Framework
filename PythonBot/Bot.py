@@ -6,6 +6,9 @@ from typing import List, Tuple
 
 from Game import Board, Tile
 
+def log(text):
+    print(text, file=sys.stderr, flush=True)
+
 
 class Bot:
     def __init__(self):
@@ -67,7 +70,7 @@ class Bot:
             coord = Bot.get_coord(update_info[2])
 
             if update_info[1] == "PLACED":
-                self.board.bombs[coord] = 7
+                self.board.bombs[coord] = 8
             elif update_info[1] == "EXPLODED":
                 del self.board.bombs[coord]
 
@@ -83,6 +86,8 @@ class Bot:
         elif tokens[0] == 'REQUEST':
             for b_coord in self.board.bombs.keys():
                 self.board.bombs[b_coord] -= 1
+                if self.board.bombs[b_coord] == 0:
+                    log("bomb exploded at: " + str(b_coord))
             self.report_move()
         elif tokens[0] == 'UPDATE':
             self.handle_update(tokens[1])

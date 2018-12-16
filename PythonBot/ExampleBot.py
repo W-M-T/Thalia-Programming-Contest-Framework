@@ -17,9 +17,5 @@ class ExampleBot(Bot):
 
 
 if __name__ == "__main__":
-    print("[StdErr test]", file=sys.stderr)
-    print("[StdErr TEST 2]", file=sys.stderr)
     sys.stderr.flush()
-    #import time
-    #time.sleep(20)
     ExampleBot().run()
