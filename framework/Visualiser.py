@@ -437,7 +437,7 @@ class Visualiser():
 
     def animateWalk(self, agentcoords):
         fps = 60
-        sec = 0.5
+        sec = 0.35
         steps = math.ceil(sec*fps)
 
         clock = pygame.time.Clock()

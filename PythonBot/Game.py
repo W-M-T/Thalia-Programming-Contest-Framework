@@ -28,7 +28,7 @@ class Board:
         return self.board[coord[1]][coord[0]]
 
     def set(self, coord, val):
-        self.board[coord[0]][coord[1]] = val
+        self.board[coord[1]][coord[0]] = val
 
     def is_valid_move(self, coord):
         return self.get(coord) == Tile.Empty and self.on_board(coord)

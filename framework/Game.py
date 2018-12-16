@@ -107,16 +107,16 @@ class Board:
 
     def isWalkable(self, coord):
         (x,y) = coord
-        return self.board[x][y] == Tile.Empty and not self.isBombHere(coord)
+        return self.board[y][x] == Tile.Empty and not self.isBombHere(coord)
 
     def onBoard(self, coord):
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
 
     def get(self, coord):
-        return self.board[coord[0]][coord[1]]
+        return self.board[coord[1]][coord[0]]
 
     def set(self, coord, val):
-        self.board[coord[0]][coord[1]] = val
+        self.board[coord[1]][coord[0]] = val
 
     def gameover(self):
         return livePlayerCount <= 1
@@ -214,28 +214,28 @@ class GameRunner(Thread):
 
         for y in range(coord[1]-1,-1,-1):
             (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         for y in range(coord[1]+1,self.BOARDSIZE[1]):
             (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         for x in range(coord[0]-1,-1,-1):
             (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         for x in range(coord[0]+1,self.BOARDSIZE[0]):
             (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         #print("CHAIN TO ",hitbombs)
         return (deadtrees, hitbombs)
 
@@ -395,7 +395,10 @@ class GameRunner(Thread):
                 continue
             else:
                 if not self.board.isWalkable(desiredmove[1]):
-                    print("TRIED TO WALK INTO A WALL")
+                    if self.board.isBombHere(desiredmove[1]):
+                        print("TRIED TO WALK INTO A BOMB")
+                    else:
+                        print("TRIED TO WALK INTO A {}".format(self.board.get(desiredmove[1]).name))
                     continue
                 else:
                     movedict[desiredmove[0]] = desiredmove[1]
