@@ -107,16 +107,16 @@ class Board:
 
     def isWalkable(self, coord):
         (x,y) = coord
-        return self.board[x][y] == Empty and not self.isBombHere(coord)
+        return self.board[y][x] == Tile.Empty and not self.isBombHere(coord)
 
     def onBoard(self, coord):
         return 0 <= coord[0] < self.dims[0] and 0 <= coord[1] < self.dims[1]
 
     def get(self, coord):
-        return self.board[coord[0]][coord[1]]
+        return self.board[coord[1]][coord[0]]
 
     def set(self, coord, val):
-        self.board[coord[0]][coord[1]] = val
+        self.board[coord[1]][coord[0]] = val
 
     def gameover(self):
         return livePlayerCount <= 1
@@ -207,36 +207,35 @@ class GameRunner(Thread):
 
 
     def explodePlus(self, coord):
-        #TODO explode center
         self.viz.syncUpdate(Visualiser.changeByKey, coord, 'FIRE')
-        #self.killCoord(*coord)
+        self.killCoord(coord)
         deadtrees = []
         hitbombs = []
 
         for y in range(coord[1]-1,-1,-1):
             (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         for y in range(coord[1]+1,self.BOARDSIZE[1]):
             (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         for x in range(coord[0]-1,-1,-1):
             (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         for x in range(coord[0]+1,self.BOARDSIZE[0]):
             (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
             if not cont:
                 break
-        deadtrees.extend(treelist)
         #print("CHAIN TO ",hitbombs)
         return (deadtrees, hitbombs)
 
@@ -253,19 +252,21 @@ class GameRunner(Thread):
             return (False, [(x,y)], [])
         else:
             self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'FIRE')
+            self.killCoord((x,y))
 
             bombsHere = list(filter(lambda bomb: bomb["pos"] == (x,y), self.board.bombs))
             if len(bombsHere) > 0:
                 self.removeBombCoord((x,y))
             return (True, [], bombsHere)
 
-    def killCoord(self, x, y):
-        #TODO FIX THIS (bad)
+    def killCoord(self, coord):
+        (x,y) = coord
         foundHere = list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
             print("Killing",p)
             self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
-            self.board.players[p]['lives'] = 0
+            self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
+            self.board.players[p]['lives'] = self.board.players[p]['lives'] - 1
 
     def removeBombCoord(self, coord):
         self.board.bombs = list(filter(lambda bomb: bomb["pos"] != coord, self.board.bombs))
@@ -393,10 +394,17 @@ class GameRunner(Thread):
                 print("CONFLICT")
                 continue
             else:
-                movedict[desiredmove[0]] = desiredmove[1]
-                self.board.players[desiredmove[0]]["pos"] = desiredmove[1]
-                for client in self.clients:
-                    writeTo(client,"UPDATE PLAYER LOC {} {}".format(desiredmove[0], desiredmove[1]))
+                if not self.board.isWalkable(desiredmove[1]):
+                    if self.board.isBombHere(desiredmove[1]):
+                        print("TRIED TO WALK INTO A BOMB")
+                    else:
+                        print("TRIED TO WALK INTO A {}".format(self.board.get(desiredmove[1]).name))
+                    continue
+                else:
+                    movedict[desiredmove[0]] = desiredmove[1]
+                    self.board.players[desiredmove[0]]["pos"] = desiredmove[1]
+                    for client in self.clients:
+                        writeTo(client,"UPDATE PLAYER LOC {} {}".format(desiredmove[0], desiredmove[1]))
 
         self.viz.syncUpdate(Visualiser.animateWalk, movedict)
 
@@ -453,6 +461,7 @@ class GameRunner(Thread):
     def doBombs(self):
         self.tickBombs()
         self.detonateBombs()
+        self.updatePlayerInfoViz()
         #self.explode((1, 1))
 
     def doTurn(self):
@@ -520,6 +529,7 @@ class GameRunner(Thread):
             self.viz.syncUpdate(Visualiser.addBomb, (5,7))
             self.viz.syncUpdate(Visualiser.drawScreen)
             '''
+            '''
             self.board.bombs.append({'pos':(7,7),'timer':2})
             self.viz.syncUpdate(Visualiser.addBomb, (7,7))
             for client in self.clients:
@@ -545,7 +555,12 @@ class GameRunner(Thread):
             for i in range(5,10):
                 print("TURN {}".format(i))
                 self.doTurn()
-            
+            '''
+            iteration = 0
+            while True:
+                print("TURN {}".format(iteration))
+                self.doTurn()
+                iteration = iteration + 1
             
         except (GameEndException,connClosedException) as e:
             print(e)
