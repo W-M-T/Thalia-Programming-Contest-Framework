@@ -520,6 +520,7 @@ class GameRunner(Thread):
             self.viz.syncUpdate(Visualiser.addBomb, (5,7))
             self.viz.syncUpdate(Visualiser.drawScreen)
             '''
+            '''
             self.board.bombs.append({'pos':(7,7),'timer':2})
             self.viz.syncUpdate(Visualiser.addBomb, (7,7))
             for client in self.clients:
@@ -545,7 +546,12 @@ class GameRunner(Thread):
             for i in range(5,10):
                 print("TURN {}".format(i))
                 self.doTurn()
-            
+            '''
+            iteration = 0
+            while True:
+                print("TURN {}".format(iteration))
+                self.doTurn()
+                iteration = iteration + 1
             
         except (GameEndException,connClosedException) as e:
             print(e)
