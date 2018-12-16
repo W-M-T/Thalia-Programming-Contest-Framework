@@ -12,13 +12,13 @@ class Bot:
         """Initialize instance variables."""
         self.board = Board((15, 15))
         self.done = False
-        self.water_round = None
+        self.water_rounds = []
         self.you = None
 
     def handle_config(self, config_info: str):
         config_info = config_info.split(maxsplit=3)
         if config_info[0] == "WATER" and config_info[1] == "ROUND":
-            self.water_round = int(config_info[2])
+            self.water_rounds.append(int(config_info[2]))
 
         elif config_info[0] == "TILE":
             coord = Bot.get_coord(config_info[1] + config_info[2])
@@ -71,8 +71,6 @@ class Bot:
 
     def handle_command(self, text: str):
         """Handle the server's message."""
-        print(text, file=sys.stderr, flush=True)
-
         tokens = text.strip().split(maxsplit=1)
         if tokens[0] == 'CONFIG':
             self.handle_config(tokens[1])
@@ -83,6 +81,8 @@ class Bot:
         elif tokens[0] == 'UPDATE':
             self.handle_update(tokens[1])
         elif tokens[0] == "YOU":
+            if "LOST" in tokens[1]:
+                print(tokens[1], file=sys.stderr, flush=True)
             self.done = True
 
     def do_move(self):
@@ -90,24 +90,22 @@ class Bot:
 
     def report_move(self):
         move = self.do_move()
-        dir = move['dir']  #: Tuple[int, int]
+        direction = move['dir']  #: Tuple[int, int]
         bomb = move['bomb']  #: bool
 
-        if max(dir) > 1 or min(dir) < -1:
+        if max(direction) > 1 or min(direction) < -1:
             raise ValueError("one of the dims is out of range")
 
         if not self.board.is_valid_move(
                 tuple(map(operator.add,
                           self.board.players[self.you]['pos'],
-                          dir))):
+                          direction))):
             raise ValueError("This is not a valid location")
 
         if bomb:
-            print("BOMBWALK {}".format(Bot.format_dir(dir)))
-            print("BOMBWALK {}".format(Bot.format_dir(dir)), file=sys.stderr, flush=True)
+            print("BOMBWALK {}".format(Bot.format_dir(direction)))
         else:
-            print("WALK {}".format(Bot.format_dir(dir)))
-            print("WALK {}".format(Bot.format_dir(dir)), file=sys.stderr, flush=True)
+            print("WALK {}".format(Bot.format_dir(direction)))
 
     def initialise(self):
         pass
