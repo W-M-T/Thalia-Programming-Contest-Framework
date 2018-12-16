@@ -6,6 +6,7 @@ from typing import List, Tuple
 
 from Game import Board, Tile
 
+
 def log(text):
     print(text, file=sys.stderr, flush=True)
 
@@ -72,7 +73,8 @@ class Bot:
             if update_info[1] == "PLACED":
                 self.board.bombs[coord] = 8
             elif update_info[1] == "EXPLODED":
-                del self.board.bombs[coord]
+                if coord in self.board.bombs:
+                    del self.board.bombs[coord]
 
     def handle_command(self, text: str):
         """Handle the server's message."""
@@ -93,7 +95,7 @@ class Bot:
             self.handle_update(tokens[1])
         elif tokens[0] == "YOU":
             if "LOST" in tokens[1]:
-                print(tokens[1], file=sys.stderr, flush=True)
+                log(tokens[1])
             self.done = True
 
     def do_move(self):
