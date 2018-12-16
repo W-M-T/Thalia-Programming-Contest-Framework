@@ -320,7 +320,7 @@ def work():
         debugfile = open(debug_file,"w")
         #Write initial line containing time
     #proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
-    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
+    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)#TODO help windows
 
     stderr_thread = Thread(target=enqueue_output, args=(proc.stderr, stderr_queue))
     stderr_thread.daemon = True # thread dies with the program

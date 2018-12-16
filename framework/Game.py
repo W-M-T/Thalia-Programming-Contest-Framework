@@ -207,9 +207,8 @@ class GameRunner(Thread):
 
 
     def explodePlus(self, coord):
-        #TODO explode center
         self.viz.syncUpdate(Visualiser.changeByKey, coord, 'FIRE')
-        #self.killCoord(*coord)
+        self.killCoord(coord)
         deadtrees = []
         hitbombs = []
 
@@ -253,19 +252,21 @@ class GameRunner(Thread):
             return (False, [(x,y)], [])
         else:
             self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'FIRE')
+            self.killCoord((x,y))
 
             bombsHere = list(filter(lambda bomb: bomb["pos"] == (x,y), self.board.bombs))
             if len(bombsHere) > 0:
                 self.removeBombCoord((x,y))
             return (True, [], bombsHere)
 
-    def killCoord(self, x, y):
-        #TODO FIX THIS (bad)
+    def killCoord(self, coord):
+        (x,y) = coord
         foundHere = list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
             print("Killing",p)
             self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
-            self.board.players[p]['lives'] = 0
+            self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
+            self.board.players[p]['lives'] = self.board.players[p]['lives'] - 1
 
     def removeBombCoord(self, coord):
         self.board.bombs = list(filter(lambda bomb: bomb["pos"] != coord, self.board.bombs))
@@ -457,6 +458,7 @@ class GameRunner(Thread):
     def doBombs(self):
         self.tickBombs()
         self.detonateBombs()
+        self.updatePlayerInfoViz()
         #self.explode((1, 1))
 
     def doTurn(self):

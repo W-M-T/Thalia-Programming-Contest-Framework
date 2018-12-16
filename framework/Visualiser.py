@@ -252,6 +252,8 @@ class Visualiser():
 
 
         pygame.display.flip()
+        for event in pygame.event.get():#Windows is bad
+            pass
 
 
     def labelMidCoordX(self, n):
@@ -342,6 +344,10 @@ class Visualiser():
         (n, l, f) = self.playerInfo[pID]
         self.playerInfo[pID] = (n, l - 1, f)
 
+    def setPlayerFire(self, pID):
+        (n, l, f) = self.playerInfo[pID]
+        self.playerInfo[pID] = (n, l, True)
+
     def getPlayerInfo(self, pID):
         return self.playerInfo[pID]
 
@@ -403,6 +409,10 @@ class Visualiser():
             for x, val in enumerate(col):
                 if self.drawTable[y][x] == self.img["FIRE"] or self.drawTable[y][x] == self.img["BURNTREE"]:
                     self.changeByKey((x, y), "DOT2")
+        for k in range(len(self.playerInfo)):
+            (n, l, f) = self.playerInfo[k]
+            self.playerInfo[k] = (n, l, False)
+
 
     def animateWaterIn(self,inset):
         image = self.img['WATER']
