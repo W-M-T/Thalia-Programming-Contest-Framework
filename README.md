@@ -42,9 +42,9 @@ You can then run this dummy player using `ClientRunner.py [otherconfig]`.
 |          |              |     |
 | ---------|:------------:| ---:|
 | Empty    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/white-medium-small-square_25fd.png" width="40" height="40" /> | Walkable, unless occupied by a bomb or player. |
-| Tree     | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/deciduous-tree_1f333.png" width="40" height="40" />     | Non-walkable. Can be destroyed by explosions. |
-| Mountain | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/mountain_26f0.png" width="40" height="40" /> | Non-walkable. |
-| Water    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/water-wave_1f30a.png" width="40" height="40" />    | Non-walkable. |
+| Tree     | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/deciduous-tree_1f333.png" width="40" height="40" />     | Non-walkable. Blocks explosions, but is destroyed in the process. |
+| Mountain | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/mountain_26f0.png" width="40" height="40" /> | Non-walkable. Blocks explosions. |
+| Water    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/water-wave_1f30a.png" width="40" height="40" />    | Non-walkable. Blocks explosions. |
 
 - The game consists of rounds till one or zero players are left
 - Each round you can either walk or stand still and either place a bomb or not
