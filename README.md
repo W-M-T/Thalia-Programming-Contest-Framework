@@ -23,10 +23,15 @@ The config file located in the `framework` directory has a team name and other
 configuration stuff. Make sure to set this up properly with correct IP addresses.
 
 ### What testing setup do we recommend?
-To test we recommend to not show debug output of the `ClientRunner` and not 
-show a visualiser. Also create two config files both with different names to 
-see the difference between these two bots. Let these two bots join the same 
-room and play a match.
+The easiest way to debug your bot is to have it play matches so you can observe its behaviour and use its debugging output.
+
+In order to do this you need to run the `ClientRunnner` twice and connect to the same room in both.
+
+In order to know which terminal window corresponds to what character in the game, we recommend you copy your `config` file.
+In this copy you can use a dummy team name and disable the visualiser (and debug output, if you are so inclined).
+It may also be useful to have this dummy player run a bot that only idles, by specifying a run command to a bot which only idles.
+
+You can then run this dummy player using `ClientRunner.py [otherconfig]`.
 
 ## Bomberman rules
 
