@@ -23,4 +23,4 @@ ServerAddress     = localhost:42042
 
 # Example commands:
 # ./starterbot.py
-# java -jar ./starterbot.jar
+java -jar ./starterbot.jar

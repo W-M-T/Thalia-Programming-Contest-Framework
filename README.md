@@ -1,10 +1,10 @@
 # Thalia Programming Contest Framework
 
-## How do I develop a bot
+## How do I develop a bot?
 - Download or Clone this repo
-- Choose either the Python ~~or Java Bot~~ and start you can start making your 
+- Choose either the Python or Java Bot and start you can start making your 
     own bot from that point. If you want to use your own language this is also 
-    possible but more work is needed. [See below for more info](#I-want-use-my-own-language).
+    possible but more work is needed. [See below for more info](#my-own-language).
     
 You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
 This script has an optional argument to use another config file.
@@ -22,18 +22,25 @@ people in it and when it is full the game starts.
 The config file located in the `framework` directory has a team name and other
 configuration stuff. Make sure to set this up properly with correct IP addresses.
 
+### What testing setup do we recommend?
 To test we recommend to not show debug output of the `ClientRunner` and not 
 show a visualiser. Also create two config files both with different names to 
 see the difference between these two bots. Let these two bots join the same 
 room and play a match.
 
 ## Bomberman rules
-- The map is 14x14 tiles
-- A tile can be:
-  - Empty, walkable
-  - A tree, can be blown up
-  - Mountain, can not be blown up
-  - Water, same as the mountain
+
+### The map
+- The map consists of 15 x 15 tiles.
+- A tile is one of the following:
+  
+|          |              |     |
+| ---------|:------------:| ---:|
+| Empty    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/white-medium-small-square_25fd.png" width="40" height="40" /> | Walkable, unless occupied by a bomb or player. |
+| Tree     | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/deciduous-tree_1f333.png" width="40" height="40" />     | Non-walkable. Can be destroyed by explosions. |
+| Mountain | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/mountain_26f0.png" width="40" height="40" /> | Non-walkable. |
+| Water    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/water-wave_1f30a.png" width="40" height="40" />    | Non-walkable. |
+
 - The game consists of rounds till one or zero players are left
 - Each round you can either walk or stand still and either place a bomb or not
 - You can not walk through people or stand on the same tile, 
@@ -55,7 +62,7 @@ room and play a match.
 - Implementing Minimax will take significant time and probably won't be worth it
 - The water is very dangerous so really watch out for that
 
-## I want use my own language
+## <a name="my-own-language"></a> I want use my own language
 You can find a copy of the protocol in the repo. And you can use the example 
 bots as reference. But keep in mind that this will take a significant amount of
 time and you will not have much left to develop the actual bot.
