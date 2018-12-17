@@ -62,6 +62,8 @@ You can then run this dummy player using `ClientRunner.py [otherconfig]`.
   water comes in 1 tile and everything on those tiles disappears and/or dies
 - The time limit per round is 0.5 seconds
 
+<img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example1.png" width="35%" height="auto" /> <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example2.png" width="35%" height="auto" />
+
 ## Hints
 - Work iteratively, you don't have much time
 - Implementing Minimax will take significant time and probably won't be worth it
