@@ -61,7 +61,7 @@ def establish_connection(server, port, teamname, roomkey):
 
     try:
         sock = socket.create_connection((server,port))
-        print("Connection established")
+        print("[+] Connection established")
         sayToServer("CLIENT NAME {}".format(teamname))
         sayToServer("CLIENT KEY {}".format(roomkey))
 
@@ -103,7 +103,7 @@ def dontGiveBot(data):
     return data.find("UPDATE DONE") == 0 or data.find("UPDATE BOMB PRIMED") == 0 #Not part of the official protocol, just for the visualiser
 
 
-def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (has to be correct as a part of the framework)
+def updateViz(viz,vizbuffer,waterbuffer,data): #No parsing error handling for server data (has to be correct as a part of the framework)
     global team
 
     maybeConfig = stripFormat("CONFIG ", data)
@@ -155,6 +155,7 @@ def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (h
     maybeStart = stripFormat("START GAME", data)
     if maybeStart is not None:
         viz.syncUpdate(Visualiser.drawScreen)
+        return
 
     maybeUpdate = stripFormat("UPDATE ", data)
     if maybeUpdate is not None:
@@ -167,6 +168,7 @@ def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (h
                 movedict[bufitem[0]] = bufitem[1]
             viz.syncUpdate(Visualiser.animateWalk, movedict)
             vizbuffer = []
+            return
 
         maybePlayerStatus = stripFormat("PLAYER STATUS ", maybeUpdate)
         if maybePlayerStatus is not None:
@@ -177,7 +179,7 @@ def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (h
                 viz.syncUpdate(Visualiser.decrPlayerLives, pID)
             else: #Dead per definition
                 viz.syncUpdate(Visualiser.setPlayerLives, pID, 0)
-                #TODO create skull, remove player float
+                viz.syncUpdate(Visualiser.changeFloatByKey, "p{}".format(pID+1), 'SKULL')
             return
 
         maybePlayerLoc = stripFormat("PLAYER LOC ", maybeUpdate)
@@ -212,15 +214,19 @@ def updateViz(viz,vizbuffer,data): #No parsing error handling for server data (h
             viz.syncUpdate(Visualiser.changeByKey, coord, "BURNTREE")
             return
 
+        maybeWaterRound = stripFormat("WATER", maybeUpdate)
+        if maybeWaterRound is not None:
+            inset = int(maybeWaterRound)
+            waterbuffer.append(inset)
+
     maybeMove = stripFormat("REQUEST MOVE", data)
     if maybeMove is not None:
-        #print(len(vizbuffer))
-        for item in vizbuffer:
-            #contains moves
-            pass
         viz.syncUpdate(Visualiser.clearFire)
         viz.syncUpdate(Visualiser.drawScreen)
-        vizbuffer = []
+        if len(waterbuffer) > 0:
+            inset = waterbuffer.pop(0)
+            viz.syncUpdate(Visualiser.animateWaterIn, inset)
+        waterbuffer = []
         return
 
 
@@ -230,7 +236,8 @@ def becomeLink(viz):
     global proc, sock
 
     vizbuffer = []
-    
+    waterbuffer = []
+
     try:
 
         while True:
@@ -246,7 +253,7 @@ def becomeLink(viz):
             else:
                 if not dontGiveBot(data):
                     print(data, file=proc.stdin, flush=True)
-            updateViz(viz,vizbuffer,data)
+            updateViz(viz,vizbuffer,waterbuffer,data)
 
             testEnd(data)
 
@@ -309,12 +316,13 @@ def work():
 
     print(team)
 
-    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid if os.name == "posix" else None)
+    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid if os.name == "posix" else None)
 
-    stderr_start = Event()
-    stderr_thread = Thread(target=print_stderr, args=(proc.stderr, stderr_start))
-    stderr_thread.daemon = True # thread dies with the program
-    stderr_thread.start()
+    if debug_on:
+        stderr_start = Event()
+        stderr_thread = Thread(target=print_stderr, args=(proc.stderr, stderr_start))
+        stderr_thread.daemon = True # thread dies with the program
+        stderr_thread.start()
 
 
     print("[?] Enter room key:\n> ",end="")
@@ -341,7 +349,9 @@ def work():
     print("READY")
     sayToServer("READY")
 
-    stderr_start.set() # Communicate this to the user?
+    if debug_on:
+        print("[*] Enabling bot StdErr output")
+        stderr_start.set()
     
     becomeLink(viz=viz)
     try:

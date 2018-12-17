@@ -18,8 +18,6 @@ SIZE = 15
 TITLE = "Thalia Bomberman"
 
 
-USE_GIF = True
-
 TEXT_HEIGHT = 15
 SCREEN_MARGIN = 5
 
@@ -355,8 +353,13 @@ class Visualiser():
     def addFloat(self, name, coord, img):
         self.drawFloats[name] = (img, coord)
 
-    def addFloatByKey(self, name, coord, key):#Maybe just add a getter method for img?
+    def addFloatByKey(self, name, coord, key):
         if key in self.img:
+            self.drawFloats[name] = (self.img[key], coord)
+
+    def changeFloatByKey(self, name, key):
+        if key in self.img:
+            (image, coord) = self.drawFloats[name]
             self.drawFloats[name] = (self.img[key], coord)
 
     def addBomb(self, coord):
@@ -422,9 +425,22 @@ class Visualiser():
         rang = range(start,end)
         amount = len(rang)
         for i in range(end - start):
+            self.removeBomb((start + i, start))
+            self.removeBomb((end - i, start))
+
+            self.removeBomb((start + i, end))
+            self.removeBomb((end - i, end))
+
+            self.removeBomb((start, start + i))
+            self.removeBomb((start, end - i))
+
+            self.removeBomb((end, start + i))
+            self.removeBomb((end, end - i))
+
             self.drawTable[start][start + i] = image
             self.drawTable[start][end - i] = image
 
+            
             self.drawTable[end][start + i] = image
             self.drawTable[end][end - i] = image
 

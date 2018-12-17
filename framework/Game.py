@@ -273,7 +273,7 @@ class GameRunner(Thread):
         foundHere = list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
             print("Killing",p)
-            self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
+            self.viz.syncUpdate(Visualiser.changeFloatByKey, p, 'SKULL')
             #self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
             self.board.players[p]['lives'] = 0
             for client in self.clients:
@@ -285,7 +285,7 @@ class GameRunner(Thread):
         self.board.players[p]['lives'] = self.board.players[p]['lives'] - 1
         if self.board.players[p]['lives'] == 0:
             status = "DEAD"
-            self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
+            self.viz.syncUpdate(Visualiser.changeFloatByKey, p, 'SKULL')
         
         for client in self.clients:
             writeTo(client,"UPDATE PLAYER STATUS {} {}".format(p, status))
@@ -346,6 +346,10 @@ class GameRunner(Thread):
     #Look at this
     def doWater(self):
         self.waterlevel += 1
+
+        for client in self.clients:
+            writeTo(client, "UPDATE WATER {}".format(self.waterlevel))
+
         for y in range(self.BOARDSIZE[1]):
             self.removeBombCoord((self.waterlevel, y))
             self.drownCoord((self.waterlevel, y))

@@ -28,6 +28,8 @@ PLAYER STATUS pID statusinfo
 BOMB PLACED coord
 BOMB EXPLODED coord
 TILE GONE coord
+WATER int
+#inset
 
 
 result =
