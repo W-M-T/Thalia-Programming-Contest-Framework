@@ -61,6 +61,7 @@ def establish_connection(server, port, teamname, roomkey):
 
     try:
         sock = socket.create_connection((server,port))
+        print("Connection established")
         sayToServer("CLIENT NAME {}".format(teamname))
         sayToServer("CLIENT KEY {}".format(roomkey))
 

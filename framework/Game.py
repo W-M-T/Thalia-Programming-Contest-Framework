@@ -77,10 +77,6 @@ class Board:
                         (self.dims[0]-2,1),
                         (1,self.dims[1]-2)
                         ]
-        pos_options = [
-                        (1,1),
-                        (2,1)
-                        ]
 
         random.shuffle(pos_options)
         self.players["p1"]      = {"lives": lives, "pos": pos_options[0]}
@@ -565,16 +561,6 @@ class GameRunner(Thread):
 
             time.sleep(2)
 
-            '''
-            self.board.board[7][4] = Tile.Tree
-            self.viz.syncUpdate(Visualiser.changeByKey, (4,7), 'TREE')
-            self.board.board[7][3] = Tile.Tree
-            self.viz.syncUpdate(Visualiser.changeByKey, (3,7), 'TREE')
-            
-            self.board.bombs.append({'pos':(5,7),'timer':3})
-            self.viz.syncUpdate(Visualiser.addBomb, (5,7))
-            self.viz.syncUpdate(Visualiser.drawScreen)
-            '''
             '''
             self.board.bombs.append({'pos':(7,7),'timer':2})
             self.viz.syncUpdate(Visualiser.addBomb, (7,7))
