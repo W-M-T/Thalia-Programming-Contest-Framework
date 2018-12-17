@@ -1,11 +1,11 @@
 public class Player {
-    private int pID;
+    private String pID;
     private Coordinate pos;
     private int lives;
     private String name;
     private boolean alive;
 
-    public Player(int pID, Coordinate pos, int lives, String name) {
+    public Player(String pID, Coordinate pos, int lives, String name) {
         this.pID = pID;
         this.pos = pos;
         this.lives = lives;
@@ -21,11 +21,11 @@ public class Player {
         lives--;
     }
 
-    public int getpID() {
+    public String getpID() {
         return pID;
     }
 
-    public void setpID(int pID) {
+    public void setpID(String pID) {
         this.pID = pID;
     }
 

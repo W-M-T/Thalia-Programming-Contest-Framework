@@ -23,10 +23,15 @@ The config file located in the `framework` directory has a team name and other
 configuration stuff. Make sure to set this up properly with correct IP addresses.
 
 ### What testing setup do we recommend?
-To test we recommend to not show debug output of the `ClientRunner` and not 
-show a visualiser. Also create two config files both with different names to 
-see the difference between these two bots. Let these two bots join the same 
-room and play a match.
+The easiest way to debug your bot is to have it play matches so you can observe its behaviour and use its debugging output.
+
+In order to do this you can run the `ClientRunnner` twice and connect to the same room in both.
+
+In order to know which terminal window corresponds to what character in the game, we recommend you copy your `config` file.
+In this copy you can use a dummy team name and disable the visualiser (and debug output, if you are so inclined).
+It may also be useful to have this dummy player run a bot that only idles, by specifying a run command to a bot which only idles.
+
+You can then run this dummy player using `ClientRunner.py [otherconfig]`.
 
 ## Bomberman rules
 
@@ -37,9 +42,9 @@ room and play a match.
 |          |              |     |
 | ---------|:------------:| ---:|
 | Empty    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/white-medium-small-square_25fd.png" width="40" height="40" /> | Walkable, unless occupied by a bomb or player. |
-| Tree     | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/deciduous-tree_1f333.png" width="40" height="40" />     | Non-walkable. Can be destroyed by explosions. |
-| Mountain | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/mountain_26f0.png" width="40" height="40" /> | Non-walkable. |
-| Water    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/water-wave_1f30a.png" width="40" height="40" />    | Non-walkable. |
+| Tree     | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/deciduous-tree_1f333.png" width="40" height="40" />     | Non-walkable. Blocks explosions, but is destroyed in the process. |
+| Mountain | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/mountain_26f0.png" width="40" height="40" /> | Non-walkable. Blocks explosions. |
+| Water    | <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/water-wave_1f30a.png" width="40" height="40" />    | Non-walkable. Blocks explosions. |
 
 - The game consists of rounds till one or zero players are left
 - Each round you can either walk or stand still and either place a bomb or not
@@ -62,7 +67,7 @@ room and play a match.
 - Implementing Minimax will take significant time and probably won't be worth it
 - The water is very dangerous so really watch out for that
 
-## <a name="my-own-language"></a> I want use my own language
+## <a name="my-own-language"></a> I want use a different programming language for my bot!
 You can find a copy of the protocol in the repo. And you can use the example 
 bots as reference. But keep in mind that this will take a significant amount of
 time and you will not have much left to develop the actual bot.

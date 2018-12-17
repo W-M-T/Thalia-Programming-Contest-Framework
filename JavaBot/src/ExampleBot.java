@@ -12,9 +12,8 @@ public class ExampleBot extends Bot{
     public Move nextMove(GameState state) {
         Random random = new Random();
         List<Coordinate> choices = getLegalDirs(state);
-        int m = random.nextInt() % choices.size();
+        int m = Math.abs(random.nextInt()) % choices.size();
         boolean b = random.nextInt() % 2 == 0;
-
         return new Move(choices.get(m), b);
     }
 }

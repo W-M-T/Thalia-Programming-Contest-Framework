@@ -16,29 +16,27 @@ public class GameState {
     
     private Board board;
     private List<Bomb> bombs;
-    private Player[] players;
-    private int you;
+    private List<Player> players;
+    private String you;
     private boolean playing;
 
     public GameState() {
         board = new Board();
         
         bombs = new ArrayList<>();
-        players = new Player[4];
-        for (int i = 0; i < 4; i++){
-            players[i] = new Player(i, new Coordinate(0, 0), 0, "p" + i);
-        }
-        you = 0;
+        players = new ArrayList<>();
+        for (int i = 0; i < 4; i++)
+            players.add(new Player("p" + (i+1), new Coordinate(0, 0), 0, "none"));
+        you = "p0";
         playing = false;
     }
     
-    private GameState(Board board, List<Bomb> bombs, Player[] players, int you, boolean playing){
+    private GameState(Board board, List<Bomb> bombs, List<Player> players, String you, boolean playing){
         this.board = board;
         this.bombs = new ArrayList<>(bombs);
-        this.players = new Player[4];
-        for (int i = 0; i < 4; i++){
-            this.players[i] = players[i].copy();
-        }
+        this.players = players;
+        for (int i = 0; i < 4; i++)
+            players.add(new Player("p" + (i+1), new Coordinate(0, 0), 0, "none"));
         this.you = you;
         this.playing = playing;
     }
@@ -56,15 +54,20 @@ public class GameState {
         return bombs;
     }
 
-    public Player[] getPlayers(){
+
+    public List<Player> getPlayers(){
         return players;
     }
 
-    public Player getPlayer(int i){
-        return players[i];
+    public Player getPlayer(String pID){
+        for (Player player : players){
+            if (player.getpID().equals(pID))
+                return player;
+        }
+        return null;
     }
 
-    public void setYou(int you){
+    public void setYou(String you){
         this.you = you;
     }
 
@@ -72,7 +75,7 @@ public class GameState {
         playing = true;
     }
 
-    public int getYou() {
+    public String getYou() {
         return you;
     }
 

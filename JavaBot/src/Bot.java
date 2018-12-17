@@ -14,14 +14,13 @@ public abstract class Bot {
         choices.add(new Coordinate(1, 0));
         choices.add(new Coordinate(0, -1));
         choices.add(new Coordinate(0, 1));
+        choices.add(new Coordinate(0, 0));
+        List<Coordinate> result = new ArrayList<>();
         for (Coordinate choice : choices){
-            if (choice.getX() < 0 || choice.getX() >= Board.FIELD_SIZE ||
-                    choice.getY() < 0 || choice.getY() >= Board.FIELD_SIZE ||
-                    state.getBoard().getTile(pos.add(choice)) != Tile.EMPTY
-            )
-                choices.remove(choice);
+            if (state.getBoard().on_board(choice) && state.getBoard().getTile(pos.add(choice)) == Tile.EMPTY)
+                result.add(choice);
         }
-        return choices;
+        return result;
     }
     
 }

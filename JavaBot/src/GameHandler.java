@@ -34,6 +34,8 @@ public class GameHandler {
             response.append("UP");
         else if (move.direction.getY() > 0)
             response.append("DOWN");
+        else
+            response.append("STAY");
 
         System.out.println(response.toString());
     }
@@ -52,7 +54,7 @@ public class GameHandler {
                 state.setTile(coordinate, tile);
                 break;
             case "PLAYER":
-                Player player = state.getPlayer(Integer.parseInt(params[3]));
+                Player player = state.getPlayer(params[3]);
                 switch (params[2]){
                     case "PLACE": player.setPos(Coordinate.parseCoordinate(params[4])); break;
                     case "LIVES": player.setLives(Integer.parseInt(params[4])); break;
@@ -60,7 +62,7 @@ public class GameHandler {
                 }
                 break;
             case "YOU":
-                state.setYou(Integer.parseInt(params[3]));
+                state.setYou(params[2]);
         }
     }
 
@@ -72,9 +74,9 @@ public class GameHandler {
         switch (type){
             case "PLAYER":
                 if (params[2].equals("LOC"))
-                    state.getPlayer(Integer.parseInt(params[3])).setPos(Coordinate.parseCoordinate(params[4]));
+                    state.getPlayer(params[3]).setPos(Coordinate.parseCoordinate(params[4]));
                 else if (params[2].equals("STATUS")){
-                    Player player = state.getPlayer(Integer.parseInt(params[3]));
+                    Player player = state.getPlayer(params[3]);
                     if (params[4].equals("DEAD"))
                         player.kill();
                     else if (params[4].equals("HIT")){
@@ -87,10 +89,13 @@ public class GameHandler {
                     state.getBombs().add(new Bomb(Coordinate.parseCoordinate(params[3]), 7));
                 else if (params[2].equals("EXPLODED")){
                     List<Bomb> bombs = state.getBombs();
+                    Bomb remove = null;
                     for (Bomb bomb: bombs){
                         if (bomb.getPos().equals(Coordinate.parseCoordinate(params[3])))
-                            bombs.remove(bomb);
+                            remove = bomb;
                     }
+                    if (remove != null)
+                        bombs.remove(remove);
                 }
                 break;
             case "TILE":
