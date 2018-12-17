@@ -25,7 +25,7 @@ configuration stuff. Make sure to set this up properly with correct IP addresses
 ### What testing setup do we recommend?
 The easiest way to debug your bot is to have it play matches so you can observe its behaviour and use its debugging output.
 
-In order to do this you need to run the `ClientRunnner` twice and connect to the same room in both.
+In order to do this you can run the `ClientRunnner` twice and connect to the same room in both.
 
 In order to know which terminal window corresponds to what character in the game, we recommend you copy your `config` file.
 In this copy you can use a dummy team name and disable the visualiser (and debug output, if you are so inclined).
@@ -67,7 +67,7 @@ You can then run this dummy player using `ClientRunner.py [otherconfig]`.
 - Implementing Minimax will take significant time and probably won't be worth it
 - The water is very dangerous so really watch out for that
 
-## <a name="my-own-language"></a> I want use my own language
+## <a name="my-own-language"></a> I want use a different programming language for my bot!
 You can find a copy of the protocol in the repo. And you can use the example 
 bots as reference. But keep in mind that this will take a significant amount of
 time and you will not have much left to develop the actual bot.
