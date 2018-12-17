@@ -12,7 +12,7 @@ TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5
 
 LIVES = 3
-WATERROUNDS = [40,60,80,100]
+WATERROUNDS = [10,40,60,80,100]
 BOMBTIMER = 7
 
 
@@ -76,6 +76,10 @@ class Board:
                         (self.dims[0]-2,self.dims[1]-2),
                         (self.dims[0]-2,1),
                         (1,self.dims[1]-2)
+                        ]
+        pos_options = [
+                        (1,1),
+                        (2,1)
                         ]
 
         random.shuffle(pos_options)
@@ -207,66 +211,88 @@ class GameRunner(Thread):
 
 
     def explodePlus(self, coord):
+        deadtrees  = []
+        hitbombs   = []
+        hitplayers = []
+
         self.viz.syncUpdate(Visualiser.changeByKey, coord, 'FIRE')
-        self.killCoord(coord)
-        deadtrees = []
-        hitbombs = []
+        hitplayers.extend(self.hitPlayerHere(coord))
 
         for y in range(coord[1]-1,-1,-1):
-            (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            (cont, treelist, bomblist, playerlist) = self.explodeHere(coord[0], y)
             deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
+            hitplayers.extend(playerlist)
             if not cont:
                 break
         for y in range(coord[1]+1,self.BOARDSIZE[1]):
-            (cont, treelist, bomblist) = self.explodeHere(coord[0], y)
+            (cont, treelist, bomblist, playerlist) = self.explodeHere(coord[0], y)
             deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
+            hitplayers.extend(playerlist)
             if not cont:
                 break
         for x in range(coord[0]-1,-1,-1):
-            (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            (cont, treelist, bomblist, playerlist) = self.explodeHere(x, coord[1])
             deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
+            hitplayers.extend(playerlist)
             if not cont:
                 break
         for x in range(coord[0]+1,self.BOARDSIZE[0]):
-            (cont, treelist, bomblist) = self.explodeHere(x, coord[1])
+            (cont, treelist, bomblist, playerlist) = self.explodeHere(x, coord[1])
             deadtrees.extend(treelist)
             hitbombs.extend(bomblist)
+            hitplayers.extend(playerlist)
             if not cont:
                 break
         #print("CHAIN TO ",hitbombs)
-        return (deadtrees, hitbombs)
+        return (deadtrees, hitbombs, hitplayers)
 
 
     def explodeHere(self, x, y):
         #Return whether to continue the explosion in this direction, possible tree to remove, bombs to detonate
         #return False and possible tree to remove if ended
         #return True if continue
-        #self.killCoord(x,y)
 
         if self.board.board[y][x].unbreakable:
-            return (False, [], [])
+            return (False, [], [], [])
         elif self.board.board[y][x] == Tile.Tree:
-            return (False, [(x,y)], [])
+            return (False, [(x,y)], [], [])
         else:
             self.viz.syncUpdate(Visualiser.changeByKey, (x,y), 'FIRE')
-            self.killCoord((x,y))
 
+            playersHere = self.hitPlayerHere((x,y))
             bombsHere = list(filter(lambda bomb: bomb["pos"] == (x,y), self.board.bombs))
             if len(bombsHere) > 0:
                 self.removeBombCoord((x,y))
-            return (True, [], bombsHere)
+            return (True, [], bombsHere, playersHere)
 
-    def killCoord(self, coord):
+    def hitPlayerHere(self, coord):
+        (x,y) = coord
+        return list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
+
+    def drownCoord(self, coord):
         (x,y) = coord
         foundHere = list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
             print("Killing",p)
             self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
-            self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
-            self.board.players[p]['lives'] = self.board.players[p]['lives'] - 1
+            #self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
+            self.board.players[p]['lives'] = 0
+            for client in self.clients:
+                writeTo(client,"UPDATE PLAYER STATUS {} DEAD (DROWNED)".format(p))
+
+    def dmgPlayer(self, p):
+        status = "HIT"
+        self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
+        self.board.players[p]['lives'] = self.board.players[p]['lives'] - 1
+        if self.board.players[p]['lives'] == 0:
+            status = "DEAD"
+            self.viz.syncUpdate(Visualiser.addFloatByKey, p, self.board.players[p]['pos'],'SKULL')
+        
+        for client in self.clients:
+            writeTo(client,"UPDATE PLAYER STATUS {} {}".format(p, status))
 
     def removeBombCoord(self, coord):
         self.board.bombs = list(filter(lambda bomb: bomb["pos"] != coord, self.board.bombs))
@@ -323,18 +349,23 @@ class GameRunner(Thread):
 
     #Look at this
     def doWater(self):
-        self.clearFires()
         self.waterlevel += 1
         for y in range(self.BOARDSIZE[1]):
-            self.killCoord(self.waterlevel, y)
+            self.removeBombCoord((self.waterlevel, y))
+            self.drownCoord((self.waterlevel, y))
             self.board.board[y][self.waterlevel] = Tile.Water
-            self.killCoord(self.BOARDSIZE[0] - 1 - self.waterlevel, y)
+
+            self.removeBombCoord((self.BOARDSIZE[0] - 1 - self.waterlevel, y))
+            self.drownCoord((self.BOARDSIZE[0] - 1 - self.waterlevel, y))
             self.board.board[y][self.BOARDSIZE[0] - 1 - self.waterlevel] = Tile.Water
 
         for x in range(self.BOARDSIZE[0]):
-            self.killCoord(x, self.waterlevel)
+            self.removeBombCoord((x, self.waterlevel))
+            self.drownCoord((x, self.waterlevel))
             self.board.board[self.waterlevel][x] = Tile.Water
-            self.killCoord(x, self.BOARDSIZE[1] - 1 - self.waterlevel)
+
+            self.removeBombCoord((x, self.BOARDSIZE[1] - 1 - self.waterlevel))
+            self.drownCoord((x, self.BOARDSIZE[1] - 1 - self.waterlevel))
             self.board.board[self.BOARDSIZE[0] - 1 - self.waterlevel][x] = Tile.Water
         self.viz.syncUpdate(Visualiser.animateWaterIn, self.waterlevel)
 
@@ -384,27 +415,33 @@ class GameRunner(Thread):
             for client in self.clients:
                 writeTo(client,"UPDATE BOMB PLACED {}".format(placedbomb))
 
-        movedict = {}
-        print("Desired moves",desiredmoves)
+        goodmoves = []
+        #print("Desired moves",desiredmoves)
         for desiredmove in desiredmoves:
             othersmoves = list(filter(lambda othermove: othermove != desiredmove, desiredmoves))
             conflictmoves = list(filter(lambda othermove: othermove[1] == desiredmove[1],othersmoves))
-            print(desiredmove,"and others",othersmoves,"give conflicts",conflictmoves)
+            #print(desiredmove,"and others",othersmoves,"give conflicts",conflictmoves)
             if len(conflictmoves) > 0:
-                print("CONFLICT")
+                #print("CONFLICT")
                 continue
             else:
-                if not self.board.isWalkable(desiredmove[1]):
+                if not self.board.isWalkable(desiredmove[1]) or self.board.isPlayersHere(desiredmove[1]):
+                    '''
                     if self.board.isBombHere(desiredmove[1]):
                         print("TRIED TO WALK INTO A BOMB")
                     else:
                         print("TRIED TO WALK INTO A {}".format(self.board.get(desiredmove[1]).name))
+                    '''
                     continue
                 else:
-                    movedict[desiredmove[0]] = desiredmove[1]
-                    self.board.players[desiredmove[0]]["pos"] = desiredmove[1]
-                    for client in self.clients:
-                        writeTo(client,"UPDATE PLAYER LOC {} {}".format(desiredmove[0], desiredmove[1]))
+                    goodmoves.append(desiredmove)
+
+        movedict = {}
+        for goodmove in goodmoves:
+            movedict[goodmove[0]] = goodmove[1]
+            self.board.players[goodmove[0]]["pos"] = goodmove[1]
+            for client in self.clients:
+                writeTo(client,"UPDATE PLAYER LOC {} {}".format(goodmove[0], goodmove[1]))
 
         self.viz.syncUpdate(Visualiser.animateWalk, movedict)
 
@@ -435,7 +472,8 @@ class GameRunner(Thread):
 
     def detonateBombs(self):
         boomlist = list(filter(lambda bomb: bomb["timer"] <= 0, self.board.bombs))
-        removeTiles = []
+        removeTiles = set()
+        hitplayerset = set()
 
         while len(boomlist) > 0:
             curBoomLoc = boomlist.pop(0)["pos"]
@@ -443,9 +481,10 @@ class GameRunner(Thread):
             for client in self.clients:
                 writeTo(client, "UPDATE BOMB EXPLODED {}".format(curBoomLoc))
 
-            (deadtrees, hitbombs) = self.explodePlus(curBoomLoc)
+            (deadtrees, hitbombs, hitplayers) = self.explodePlus(curBoomLoc)
             boomlist.extend(hitbombs)
-            removeTiles.extend(deadtrees)
+            removeTiles = removeTiles.union(deadtrees)
+            hitplayerset = hitplayerset.union(hitplayers)
         
         for tree in removeTiles:
             (x,y) = tree
@@ -453,6 +492,10 @@ class GameRunner(Thread):
             self.viz.syncUpdate(Visualiser.changeByKey, tree, 'BURNTREE')
             for client in self.clients:
                 writeTo(client, "UPDATE TILE GONE {}".format(tree))
+
+        for player in hitplayerset:
+            print("Player got hit",player)
+            self.dmgPlayer(player)
 
         self.viz.syncUpdate(Visualiser.drawScreen)
 
@@ -464,13 +507,16 @@ class GameRunner(Thread):
         self.updatePlayerInfoViz()
         #self.explode((1, 1))
 
-    def doTurn(self):
+    def doTurn(self, turnNo):
         self.clearFires()
         print("time to act")
         self.doAct()
         #time.sleep(1)
         print("time to bomb")
         self.doBombs()
+        if turnNo in WATERROUNDS:
+            self.doWater()
+
         for client in self.clients:
             writeTo(client, "UPDATE DONE")
         time.sleep(0.5)
@@ -559,7 +605,7 @@ class GameRunner(Thread):
             iteration = 0
             while True:
                 print("TURN {}".format(iteration))
-                self.doTurn()
+                self.doTurn(iteration)
                 iteration = iteration + 1
             
         except (GameEndException,connClosedException) as e:

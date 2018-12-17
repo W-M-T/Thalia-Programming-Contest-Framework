@@ -252,8 +252,9 @@ class Visualiser():
 
 
         pygame.display.flip()
-        for event in pygame.event.get():#Windows is bad
-            pass
+        pygame.event.pump()
+        #for event in pygame.event.get():#Windows is bad
+        #    pass
 
 
     def labelMidCoordX(self, n):
