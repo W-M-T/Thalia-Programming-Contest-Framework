@@ -1,7 +1,4 @@
-import java.awt.*;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 
 public class Board {
@@ -29,7 +26,9 @@ public class Board {
         this.board = copy;
     }
 
-    boolean on_board(int x, int y) {
+    boolean on_board(Coordinate coordinate) {
+        int x = coordinate.getX();
+        int y = coordinate.getY();
         return x >= 0 && x < FIELD_SIZE && y >= 0 && y < FIELD_SIZE;
     }
 

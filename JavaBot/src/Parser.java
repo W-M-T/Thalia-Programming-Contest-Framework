@@ -25,8 +25,10 @@ public class Parser {
         boolean done = false;        
         String[] commands;
         
-        while(!done){            
-            commands = input.nextLine().split(" "); 
+        while(!done){
+            String in = input.nextLine();
+            in = in.replace(", ", ",");
+            commands = in.split(" ");
             
             switch(commands[0]){
                 case "CONFIG":
@@ -61,12 +63,12 @@ public class Parser {
 
     private void parseRequest(String[] commands){
         if (commands[1].equals("MOVE"))
-            handler.performAction();
+                handler.performAction();
         else
             System.out.println("Undefined Request");
     }
 
     private void parseUpdate(String[] commands){
-        handler.handleUpdate(commands[1], commands);
+            handler.handleUpdate(commands[1], commands);
     }
 }
