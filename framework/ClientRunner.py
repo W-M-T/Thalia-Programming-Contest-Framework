@@ -2,7 +2,7 @@
 
 from subprocess import Popen, PIPE, STDOUT, DEVNULL
 from queue import Queue, Empty
-from threading  import Thread
+from threading import Thread, Event
 import sys
 import select
 import os
@@ -25,7 +25,6 @@ recvbuffer = RecvBuffer()
 SHELLMODE = True
 
 DEBUG = False
-stderr_queue = Queue()
 debugfile = None
 
 def cleanup():
@@ -40,22 +39,16 @@ def cleanup():
 import atexit
 atexit.register(cleanup)
 
-def enqueue_output(out, queue):
+def print_stderr(out, startEvent): #Blocking, so done in another thread
     global proc
-    for line in iter(out.readline, b''): #This will infinite loop when the bot ends. Prevent this.
+
+    startEvent.wait()
+    for line in iter(out.readline, b''):
         if len(line) == 0:
             break
-        print("\033[0;33m>>",line, end="\033[0m")
-        queue.put(line)
-    print("PLEASE")
+        print("\033[0;33m>>",line.rstrip("\n"), end="\033[0m\n")
     out.close()
 
-def print_entire_stderr():
-    while True:
-        try:
-            print("\033[0;33m>>",stderr_queue.get_nowait(), end="\033[0m")
-        except Empty:
-            break
 
 def sayToServer(data):
     global sock
@@ -287,17 +280,16 @@ def readConfig(configfile):
         #Ensure KeyErrors instead of fallback values for booleans
         parser['TEAM']['RandPostFixNr']
         parser['VISUALISER']['EnableVisualiser']
-        parser['BOT']['WriteStdErrToFile']
+        parser['BOT']['PrintBotStdErr']
 
         teamname      = parser['TEAM']['TeamName']
         postfixnr     = parser['TEAM'].getboolean('RandPostFixNr')
         viz           = parser['VISUALISER'].getboolean('EnableVisualiser')
-        debug         = parser['BOT'].getboolean('WriteStdErrToFile')
-        debugfile     = parser['BOT']['StdErrFile']
+        debug         = parser['BOT'].getboolean('PrintBotStdErr')
         runcommand    = parser['BOT']['RunCommand']
         (server,port) = parser['SERVER']['ServerAddress'].split(":")
 
-        return (teamname+("("+str(random.randrange(99))+")" if postfixnr else ""), viz, debug, debugfile, runcommand, server, port)
+        return (teamname+("("+str(random.randrange(99))+")" if postfixnr else ""), viz, debug, runcommand, server, port)
 
     except Exception as e:
         print("[-] Error parsing the config file:\n\t{}\n\t{}".format(e.__class__.__name__, e))
@@ -312,24 +304,18 @@ def work():
     args = parser.parse_args()
 
     print("[+] Starting client")
-    (team, viz_enabled, debug_on, debug_file, command, server, port) = readConfig(args.altconfig)
+    (team, viz_enabled, debug_on, command, server, port) = readConfig(args.altconfig)
 
     print(team)
 
-    if debug_on:
-        debugfile = open(debug_file,"w")
-        #Write initial line containing time
-    #proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=debugfile if debug_on else DEVNULL, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)
-    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid)#TODO help windows
+    proc = Popen(command, shell=SHELLMODE, stdin=PIPE, stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True, preexec_fn=os.setsid if os.name == "posix" else None)
 
-    stderr_thread = Thread(target=enqueue_output, args=(proc.stderr, stderr_queue))
+    stderr_start = Event()
+    stderr_thread = Thread(target=print_stderr, args=(proc.stderr, stderr_start))
     stderr_thread.daemon = True # thread dies with the program
     stderr_thread.start()
 
-    #print_entire_stderr()
 
-    print(proc.stdout)
-    print(proc.stderr)
     print("[?] Enter room key:\n> ",end="")
     roomkey = input().strip()
 
@@ -343,8 +329,6 @@ def work():
     if viz_enabled:
         try:
             viz = VisualiserWrapper(Visualiser(True,1))
-            #viz.updateTitle("You ({})".format(team),"Other ({})".format(otherteam))
-
             print("[+] UI running")
         except Exception as e:
             print("[-] Got an error:")
@@ -355,6 +339,8 @@ def work():
 
     print("READY")
     sayToServer("READY")
+
+    stderr_start.set() # Communicate this to the user?
     
     becomeLink(viz=viz)
     try:

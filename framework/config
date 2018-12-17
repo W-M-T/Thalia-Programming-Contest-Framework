@@ -6,18 +6,17 @@ RandPostfixNr     = True
 
 
 [VISUALISER]
-EnableVisualiser  = True
+EnableVisualiser = True
 
 
 [BOT]
-WriteStdErrToFile = True
-StdErrFile        = ./stderr.txt
+PrintBotStdErr    = True
 RunCommand        = ./../PythonBot/ExampleBot.py
 
 
 [SERVER]
 ServerAddress     = localhost:42042
-#ServerAddress     = zeeslag.thalia.nu:42042
+#ServerAddress     = bomberman.thalia.nu:42042
 
 
 #localhost:42042
