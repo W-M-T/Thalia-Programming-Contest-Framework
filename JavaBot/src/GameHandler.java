@@ -71,7 +71,7 @@ public class GameHandler {
     }
 
     public void startGame(){
-        state.startPlaying();
+        bot.initialize(state);
     }
 
     public void handleUpdate(String type, String[] params){

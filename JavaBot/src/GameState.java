@@ -1,18 +1,17 @@
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class GameState {
-    
+
+
     private Board board;
-    private List<Bomb> bombs;
-    private List<Player> players;
+    private boolean done;
     private List<Integer> waterRounds;
     private String you;
+    private List<Bomb> bombs;
+    private List<Player> players;
     private int round;
-    private boolean playing;
-    private boolean gameover;
     private boolean won;
 
     public GameState() {
@@ -25,12 +24,11 @@ public class GameState {
         waterRounds = new ArrayList<>();
         you = "p0";
         round = 0;
-        playing = false;
-        gameover = false;
+        done = false;
         won = false;
     }
     
-    private GameState(Board board, List<Bomb> bombs, List<Player> players, List<Integer> waterRounds, String you, int round, boolean playing, boolean gameover, boolean won){
+    private GameState(Board board, List<Bomb> bombs, List<Player> players, List<Integer> waterRounds, String you, int round, boolean isDone, boolean won){
         this.board = board;
         this.bombs = new ArrayList<>(bombs);
         this.players = players;
@@ -39,8 +37,7 @@ public class GameState {
         this.waterRounds = waterRounds;
         this.you = you;
         this.round = round;
-        this.playing = playing;
-        this.gameover = gameover;
+        this.done = isDone;
         this.won = won;
     }
 
@@ -81,11 +78,11 @@ public class GameState {
 
     public void gameOver(boolean won){
         this.won = won;
-        gameover = true;
+        done = true;
     }
 
-    public boolean isGameover(){
-        return gameover;
+    public boolean isDone(){
+        return done;
     }
 
     public boolean didWin(){
@@ -104,16 +101,9 @@ public class GameState {
         return round;
     }
 
-    public void startPlaying(){
-        playing = true;
-    }
 
-    public String getYou() {
-        return you;
-    }
-
-    public boolean isPlaying() {
-        return playing;
+    public Player getYou() {
+        return getPlayer(you);
     }
 
     public List<Integer> getWaterRounds() {
@@ -135,7 +125,7 @@ public class GameState {
     }
 
     public GameState copy(){
-        return new GameState(getBoard(), getBombs(), getPlayers(), getWaterRounds(), getYou(), getRound(), isPlaying(), isGameover(), didWin());
+        return new GameState(getBoard(), getBombs(), getPlayers(), getWaterRounds(), you, getRound(), isDone(), didWin());
     }
     
 }

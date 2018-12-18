@@ -11,7 +11,7 @@ EnableVisualiser = True
 
 [BOT]
 PrintBotStdErr    = True
-RunCommand        = ./../PythonBot/ExampleBot.py
+RunCommand        = java -jar ./starterbot.jar
 
 
 [SERVER]

@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="starterbot">
+    <output-path>$PROJECT_DIR$/out/artifacts/starterbot</output-path>
+    <root id="archive" name="starterbot.jar">
+      <element id="module-output" name="JavaBot" />
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/out/META-INF/MANIFEST.MF" />
+      </element>
+    </root>
+  </artifact>
+</component>

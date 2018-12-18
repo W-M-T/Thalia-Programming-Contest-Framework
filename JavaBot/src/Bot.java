@@ -1,8 +1,8 @@
 
-public abstract class Bot {
+public interface Bot {
     
-    public abstract void initialize();
+    void initialize(GameState state);
 
-    public abstract Move nextMove(GameState state);
+    Move nextMove(GameState state);
 
 }
