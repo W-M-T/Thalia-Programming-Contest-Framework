@@ -22,12 +22,13 @@ In the `framework` directory you will also find a config file. By changing it yo
 - What command to run to run your bot
 - Where to connect to the server (you probably won't need to change this)
 
-The Server hosts lobbies to which the clients can connect using lobby ids.
-If you use the same lobby id you will be in the same game. A lobby can have 2-4
-people in it and when it is full the game starts.
+## How do I play a match?
+When you connect to the server, you specify a lobby to join. This can be any string.
 
-The config file located in the `framework` directory has a team name and other
-configuration stuff. Make sure to set this up properly with correct IP addresses.
+If you join the same lobby as someone else you will be in the same game. A lobby can hold 2-4
+people in it, depending on the current server configuration.
+
+When a lobby is full the game starts.
 
 ### What testing setup do we recommend?
 The easiest way to debug your bot is to have it play matches so you can observe its behaviour and use its debugging output.
