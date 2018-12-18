@@ -476,7 +476,7 @@ class GameRunner(Thread):
         #self.explode((1, 1))
 
     def doTurn(self, turnNo):
-        self.clearFires()
+        self.viz.syncUpdate(Visualiser.clearFire)
         #print("time to act")
         self.doAct()
         #time.sleep(1)

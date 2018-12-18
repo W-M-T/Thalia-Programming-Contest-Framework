@@ -528,7 +528,10 @@ class VisualiserWrapper:
             self.viz.syncUpdate(func,*args)
         if self.spec is not None:
             #print(func.__name__,args)
-            sockSend(self.spec, func.__name__ + " " + json.dumps(args))
+            try:
+                sockSend(self.spec, func.__name__ + " " + json.dumps(args))
+            except Exception:
+                pass
 
 
 
