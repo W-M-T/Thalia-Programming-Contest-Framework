@@ -354,6 +354,7 @@ def work():
 
     print("[+] Challenged by {}".format(otherteam))
 
+    viz = None
     #Move to separate function
     if viz_enabled:
         try:
