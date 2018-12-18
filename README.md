@@ -1,26 +1,34 @@
 # Thalia Programming Contest Framework
 
 ## How do I develop a bot?
-- Download or Clone this repo
-- Choose either the Python or Java Bot and start you can start making your 
-    own bot from that point. If you want to use your own language this is also 
-    possible but more work is needed. [See below for more info](#my-own-language).
+Independent of what language you want to work in, you will need the `ClientRunner` found in this repository.
+
+The `ClientRunner` connects to the match server and communicates in- and output with your bot.
+
+So to get started, you:
+
+- Fork, Clone or Download this repo
+- Choose the language you want to work in. There are starter bots for Python and Java. You can find these in the `PythonBot` and `Javabot` directory respectively.
+<sub><sup>*If you want to use your a different language: you can, but we discourage this. [See below for more info](#my-own-language).*</sup></sub>
     
-You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
+You can run your bot by running the ```ClientRunner.py``` script in the `framework` directory.
 This script has an optional argument to use another config file.
 
-In this directory you will also find a config file. By changing it you can configure:
+### Edit your config file
+In the `framework` directory you will also find a config file. By changing it you can configure:
 - The name of your team
 - Whether to enable the clientside visualiser
+- Whether to print the StdErr output of your bot (which you can use to debug your bot)
+- What command to run to run your bot
 - Where to connect to the server (you probably won't need to change this)
-- What command to run to run your bot.
 
-The Server hosts lobbies to which the clients can connect using lobby ids.
-If you use the same lobby id you will be in the same game. A lobby can have 2-4
-people in it and when it is full the game starts.
+## How do I play a match?
+When you connect to the server, you specify a lobby to join. This can be any string.
 
-The config file located in the `framework` directory has a team name and other
-configuration stuff. Make sure to set this up properly with correct IP addresses.
+If you join the same lobby as someone else you will be in the same game. A lobby can hold 2-4
+people in it, depending on the current server configuration.
+
+When a lobby is full the game starts.
 
 ### What testing setup do we recommend?
 The easiest way to debug your bot is to have it play matches so you can observe its behaviour and use its debugging output.
@@ -57,17 +65,17 @@ You can then run this dummy player using `ClientRunner.py [otherconfig]`.
 - When an explosion touches an other bomb it also instantly explodes
 - If there are multiple bombs on a line still only one tree dies
 - Getting hit by a bomb loses one life
-- If you don't have a lives left you lose and die
+- If you don't have any lives left you lose and die
 - Bomberman is the first battle royale and thus after the specified rounds, 
   water comes in 1 tile and everything on those tiles disappears and/or dies
 - The time limit per round is 0.5 seconds
 
-<img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example1.png" width="35%" height="auto" /> <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example2.png" width="35%" height="auto" />
+<img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example1.png" width="45%" height="auto" /> <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example2.png" width="45%" height="auto" />
 
 ## Hints
-- Work iteratively, you don't have much time
-- Implementing Minimax will take significant time and probably won't be worth it
-- The water is very dangerous so really watch out for that
+- It is better to build a dumb functional bot which you improve iteratively, then to build a smart bot which you don't complete in time.
+- Implementing Minimax will take significant time and probably won't be worth it.
+- The water is very dangerous so really watch out for that.
 
 ## <a name="my-own-language"></a> I want use a different programming language for my bot!
 You can find a copy of the protocol in the repo. And you can use the example 
