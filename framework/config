@@ -11,16 +11,17 @@ EnableVisualiser = True
 
 [BOT]
 PrintBotStdErr    = True
-RunCommand        = java -jar ./starterbot.jar
+RunCommand        = ./../PythonBot/ExampleBot.py
 
 
 [SERVER]
-ServerAddress     = localhost:42042
-#ServerAddress     = bomberman.thalia.nu:42042
+ServerAddress     = bomberman.thalia.nu:42042
+#ServerAddress     = localhost:42042
+
 
 
 #localhost:42042
 
 # Example commands:
-# ./starterbot.py
-# java -jar ./starterbot.jar
+# ./../PythonBot/ExampleBot.py
+# java -jar [path to jar]

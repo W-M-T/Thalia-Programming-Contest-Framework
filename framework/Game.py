@@ -155,7 +155,7 @@ class GameRunner(Thread):
         super(GameRunner, self).__init__()
 
         self.clients = clients
-        self.viz = VisualiserWrapper(viz)
+        self.viz = VisualiserWrapper(viz, spectator)
         self.spectator = spectator
 
         for k, client in enumerate(self.clients):

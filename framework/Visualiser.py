@@ -12,6 +12,8 @@ from enum import Enum
 from threading import Thread
 from queue import Queue
 import math
+import json
+from Util import sockSend
 
 #Text 20 and TD 60 for projection
 #Text 15 and TD 40 for testing
@@ -146,9 +148,15 @@ class Visualiser():
         self.drawTable[5][9] = self.img['SHIELD']
         self.drawTable[9][9] = self.img['SHIELD']
 
-    def resetField(self):   
-        self.drawTable = []
+    def resetField(self):
+        self.drawFloats = {}
+        self.drawBombs  = []
+
+        self.playerInfo = [("",-1,False)]*4 
+        self.drawTable  = []
+
         self.initTable()
+        self.drawScreen()
 
 
     def __init__(self, is_main, scaling):
@@ -509,13 +517,18 @@ class Visualiser():
 
 class VisualiserWrapper:
 
-    def __init__(self, viz):
-        self.viz = viz
+    def __init__(self, viz, spec = None):
+        self.viz  = viz
+        self.spec = spec
+        #print("Spectator is ",spec)
 
     def syncUpdate(self,func,*args):
         #print(func)
         if self.viz is not None:
             self.viz.syncUpdate(func,*args)
+        if self.spec is not None:
+            #print(func.__name__,args)
+            sockSend(self.spec, func.__name__ + " " + json.dumps(args))
 
 
 
