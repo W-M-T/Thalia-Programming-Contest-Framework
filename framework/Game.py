@@ -12,7 +12,7 @@ TURNTIMEOUT      = 2.0
 MINTURNTIME      = 0.5
 
 LIVES = 3
-WATERROUNDS = [10,40,60,80,100]
+WATERROUNDS = [60,80,100,120,140]
 BOMBTIMER = 7
 
 
@@ -86,10 +86,6 @@ class Board:
         if playercount == 4:
             self.players["p4"]  = {"lives": lives, "pos": pos_options[3]}
 
-    def getExplodeTiles(self, coord):
-        #Only + tiles
-        #Other function for recursive effect
-        pass
 
     def isBombHere(self, coord):
         return any(map(lambda bomb: bomb["pos"] == coord,self.bombs))
@@ -118,11 +114,9 @@ class Board:
     def set(self, coord, val):
         self.board[coord[1]][coord[0]] = val
 
-    def gameover(self):
-        return livePlayerCount <= 1
+    def getLivePlayerIDs(self):
+        return [k for (k,v) in self.players.items() if v["lives"] > 0]
 
-    def livePlayerCount(self):
-        return len(list(filter(lambda x: x is not None, self.players)))
 
 
 def writeTo(client,data):
@@ -272,10 +266,12 @@ class GameRunner(Thread):
         (x,y) = coord
         foundHere = list(filter((lambda t: self.board.players[t]['lives'] > 0 and self.board.players[t]['pos'] == (x,y)),self.board.players))
         for p in foundHere:
-            print("Killing",p)
+            #print("Killing",p)
             self.viz.syncUpdate(Visualiser.changeFloatByKey, p, 'SKULL')
             #self.viz.syncUpdate(Visualiser.setPlayerFire, int(p[1:])-1)
             self.board.players[p]['lives'] = 0
+            writeTo(self.clients[int(p[1:])-1], "YOU LOST")
+
             for client in self.clients:
                 writeTo(client,"UPDATE PLAYER STATUS {} DEAD (DROWNED)".format(p))
 
@@ -286,6 +282,7 @@ class GameRunner(Thread):
         if self.board.players[p]['lives'] == 0:
             status = "DEAD"
             self.viz.syncUpdate(Visualiser.changeFloatByKey, p, 'SKULL')
+            writeTo(self.clients[int(p[1:])-1], "YOU LOST")
         
         for client in self.clients:
             writeTo(client,"UPDATE PLAYER STATUS {} {}".format(p, status))
@@ -293,7 +290,7 @@ class GameRunner(Thread):
     def removeBombCoord(self, coord):
         self.board.bombs = list(filter(lambda bomb: bomb["pos"] != coord, self.board.bombs))
         self.viz.syncUpdate(Visualiser.removeBomb, coord)
-        print("Removed bomb at {}".format(coord))
+        #print("Removed bomb at {}".format(coord))
 
     #TODO LOOK AT THIS
     def updateMapViz(self):
@@ -306,7 +303,7 @@ class GameRunner(Thread):
                                         Tile.Empty:'DOT2'
                                         }[self.board.board[y][x]])
         self.viz.syncUpdate(Visualiser.drawScreen)
-        print("Screen should update now")
+        #print("Screen should update now")
 
     def updatePlayerInfoViz(self):
         for p, pinfo in self.board.players.items():
@@ -315,23 +312,7 @@ class GameRunner(Thread):
             pNo = int(p.lstrip("p")) - 1
             self.viz.syncUpdate(Visualiser.setPlayerInfo, pNo, (self.clients[pNo]["name"] ,lives, False))
 
-    def setPlayersViz(self):
-        images = list(map((lambda x: 'CHAR{}'.format(x)), list(range(1,5))))
-        print(images)
-        random.shuffle(images)
 
-        for ix, (player,info) in enumerate(self.board.players.items()):
-            print(player)
-            self.viz.syncUpdate(Visualiser.addFloatByKey, player,info['pos'], images[ix])
-        self.viz.syncUpdate(Visualiser.drawScreen)
-
-    def updatePlayerViz(self):
-        moves = {}
-        for player, info in self.board.players.items():
-            moves[player] = info['pos']
-        self.viz.syncUpdate(Visualiser.animateWalk, moves)
-
-    #Look at this
     def clearFires(self):
         for y in range(self.BOARDSIZE[1]):
             for x in range(self.BOARDSIZE[0]):
@@ -380,11 +361,11 @@ class GameRunner(Thread):
         
         responses = []
         #Receive action
-        for client in self.clients:
+        for client in [aclient for aclient in self.clients if aclient["pID"] in self.board.getLivePlayerIDs()]:
             response = readFrom(client)
             #print(client["name"], response)
             responses.append((client,response))
-        print("Done receiving")
+        #print("Done receiving")
         
 
         #Parse, verify and do
@@ -446,20 +427,7 @@ class GameRunner(Thread):
         self.viz.syncUpdate(Visualiser.animateWalk, movedict)
 
         self.viz.syncUpdate(Visualiser.drawScreen)
-        #for (p, desmove) in desiredmoves:
 
-
-        '''
-        #Perform actions
-        for player, info in self.board.players.items():
-            (x,y) = self.board.players[player]['pos']
-            choices = ([(1,0)] if x != 13 else []) + ([(0,1)] if y != 13 else []) + ([(-1,0)] if x != 1 else []) + ([(0,-1)] if y != 1 else [])
-            choices = list(filter((lambda coord: self.board.board[y+coord[1]][x+coord[0]] == Tile.Empty), choices))
-            (dx, dy) = random.choice(choices)
-            self.board.players[player]['pos'] = (x + dx, y + dy)
-        '''
-        
-        #self.updatePlayerViz()
 
     def tickBombs(self):
         for bomb in self.board.bombs:
@@ -494,7 +462,7 @@ class GameRunner(Thread):
                 writeTo(client, "UPDATE TILE GONE {}".format(tree))
 
         for player in hitplayerset:
-            print("Player got hit",player)
+            #print("Player got hit",player)
             self.dmgPlayer(player)
 
         self.viz.syncUpdate(Visualiser.drawScreen)
@@ -509,17 +477,27 @@ class GameRunner(Thread):
 
     def doTurn(self, turnNo):
         self.clearFires()
-        print("time to act")
+        #print("time to act")
         self.doAct()
         #time.sleep(1)
-        print("time to bomb")
+        #print("time to bomb")
         self.doBombs()
         if turnNo in WATERROUNDS:
             self.doWater()
 
         for client in self.clients:
             writeTo(client, "UPDATE DONE")
-        time.sleep(0.5)
+
+        liveClients = [aclient for aclient in self.clients if aclient["pID"] in self.board.getLivePlayerIDs()] 
+        if len(liveClients) <= 1:
+            # Game over!
+            for client in liveClients:
+                writeTo(client, "YOU WON")
+            for client in self.clients:
+                writeTo(client, "END")
+            raise GameEndException("Match ended: Living: {} ({})".format([k["name"] for k in liveClients], " versus ".join(map(lambda x: x['name'], self.clients))))
+
+        time.sleep(0.3)
 
     def doConfig(self):
         #Inform names and ids
@@ -565,57 +543,14 @@ class GameRunner(Thread):
 
             time.sleep(2)
 
-            '''
-            self.board.bombs.append({'pos':(7,7),'timer':2})
-            self.viz.syncUpdate(Visualiser.addBomb, (7,7))
-            for client in self.clients:
-                writeTo(client,"UPDATE BOMB PLACED {}".format((7,7)))
-            self.board.bombs.append({'pos':(9,7),'timer':11})
-            self.viz.syncUpdate(Visualiser.addBomb, (9,7))
-            for client in self.clients:
-                writeTo(client,"UPDATE BOMB PLACED {}".format((9,7)))
-                writeTo(client,"UPDATE DONE")
-            self.viz.syncUpdate(Visualiser.drawScreen)
-            time.sleep(1.1)
-            for i in range(5):
-                print("TURN {}".format(i))
-                self.doTurn()
-
-            self.board.bombs.append({'pos':(7,7),'timer':2})
-            self.viz.syncUpdate(Visualiser.addBomb, (7,7))
-            for client in self.clients:
-                writeTo(client,"UPDATE BOMB PLACED {}".format((7,7)))
-                writeTo(client,"UPDATE DONE")
-            self.viz.syncUpdate(Visualiser.drawScreen)
-            time.sleep(1.1)
-            for i in range(5,10):
-                print("TURN {}".format(i))
-                self.doTurn()
-            '''
             iteration = 0
             while True:
-                print("TURN {}".format(iteration))
+                #print("TURN {}".format(iteration))
                 self.doTurn(iteration)
                 iteration = iteration + 1
             
         except (GameEndException,connClosedException) as e:
             print(e)
-
-        for client in self.clients:
-            #client["socket"].close()
-            pass
-
-        #informSpectator(self.spectator,"end")
-        print("Like tears, in rain. Time to die.")
-        time.sleep(1)
-        #self.board.players['p1']['pos'] = (7,)*2
-        #self.updatePlayerViz()
-        #time.sleep(5)
-        for i in range(4):
-            #self.doWater()
-            #v.animateWaterIn(i,None)
-            pass
-        time.sleep(15)
 
         print("Match ended")
         
