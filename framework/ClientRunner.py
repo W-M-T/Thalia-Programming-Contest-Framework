@@ -91,16 +91,22 @@ class gameEnded(Exception):
     pass
 
 
+def testDead(data):
+    if data.find("YOU LOST") == 0:
+        #print("YOU DIED!")
+        return True
+
 def testEnd(data):
-    if data.find("YOU WON") == 0 or data.find("YOU LOST") == 0:
+    if data.find("YOU WON") == 0 or data.find("END") == 0:
         print("GAME OVER:",data)
+        time.sleep(2)
         raise gameEnded
 
 def isRequest(data):
     return data.find("REQUEST MOVE") == 0
 
 def dontGiveBot(data):
-    return data.find("UPDATE DONE") == 0 or data.find("UPDATE BOMB PRIMED") == 0 #Not part of the official protocol, just for the visualiser
+    return data.find("UPDATE DONE") == 0 or data.find("UPDATE BOMB PRIMED") == 0 or testDead(data)#Not part of the official protocol, just for the visualiser
 
 
 def updateViz(viz,vizbuffer,waterbuffer,data): #No parsing error handling for server data (has to be correct as a part of the framework)
@@ -166,6 +172,8 @@ def updateViz(viz,vizbuffer,waterbuffer,data): #No parsing error handling for se
             movedict = {}
             for bufitem in vizbuffer:
                 movedict[bufitem[0]] = bufitem[1]
+            #time.sleep(0.3)
+            #viz.syncUpdate(Visualiser.clearFire)
             viz.syncUpdate(Visualiser.animateWalk, movedict)
             vizbuffer = []
             return
@@ -226,9 +234,15 @@ def updateViz(viz,vizbuffer,waterbuffer,data): #No parsing error handling for se
         if len(waterbuffer) > 0:
             inset = waterbuffer.pop(0)
             viz.syncUpdate(Visualiser.animateWaterIn, inset)
-        waterbuffer = []
+        waterbuffer = [] # not needed?
         return
 
+def finalWater(viz, waterbuffer):
+    viz.syncUpdate(Visualiser.clearFire)
+    viz.syncUpdate(Visualiser.drawScreen)
+    if len(waterbuffer) > 0:
+        inset = waterbuffer.pop(0)
+        viz.syncUpdate(Visualiser.animateWaterIn, inset)
 
 
 
@@ -237,6 +251,7 @@ def becomeLink(viz):
 
     vizbuffer = []
     waterbuffer = []
+    playerDead = False
 
     try:
 
@@ -247,7 +262,7 @@ def becomeLink(viz):
             #print("SERVER ->",end="")
             #data = input()#lbRecv(sock, recvbuffer)
             data = lbRecv(sock, recvbuffer)
-            print(data)
+            #print(data)
             if DEBUG:
                 print(data)
             else:
@@ -257,21 +272,26 @@ def becomeLink(viz):
 
             testEnd(data)
 
+
+            playerDead = playerDead or testDead(data)
             respond = isRequest(data)
 
-            if respond:
-                print("I need a response now")
+            if respond and not playerDead:
+                #print("I need a response now")
                 #BOT -> SERVER
                 bot_resp = input() if DEBUG else proc.stdout.readline().rstrip("\n")
-                print("> :", bot_resp)
+                #print("> :", bot_resp)
                 sayToServer(bot_resp)
 
 
     except gameEnded:
+        finalWater(viz, waterbuffer)
         pass
+    except BrokenPipeError:
+        print("[-] Bot crashed (pipe broken)")
 
             
-    print("Link stopped")
+    print("[*] Link stopped")
 
 
 import random

@@ -2,8 +2,11 @@
 
 import sys, time
 import contextlib
-with contextlib.redirect_stdout(None):
-    import pygame
+try:
+    with contextlib.redirect_stdout(None):
+        import pygame
+except ImportError:
+    pass
 
 from enum import Enum
 from threading import Thread
@@ -24,7 +27,6 @@ SCREEN_MARGIN = 5
 TD_MARGIN = 1
 TD_SIZE = (40,)*2
 FIELD_MARGIN = 5
-FIELD_RECT = pygame.Rect((FIELD_MARGIN,FIELD_MARGIN), (SIZE*TD_SIZE[0] + (SIZE-1)*TD_MARGIN,SIZE*TD_SIZE[1] + (SIZE-1)*TD_MARGIN))
 
 #TEXT_HEIGHT, TD_SIZE = 20, (60,)*2
 
