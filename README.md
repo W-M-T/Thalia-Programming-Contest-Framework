@@ -1,10 +1,15 @@
 # Thalia Programming Contest Framework
 
 ## How do I develop a bot?
-- Download or Clone this repo
-- Choose either the Python or Java Bot and start you can start making your 
-    own bot from that point. If you want to use your own language this is also 
-    possible but more work is needed. [See below for more info](#my-own-language).
+Independent of what language you want to work in, you will need the `ClientRunner` found in this repository.
+
+The `ClientRunner` connects to the match server and communicates in- and output with your bot.
+
+So to get started, you:
+
+- **Fork, Clone or Download this repo**
+- Choose the language you want to work in. There are starter bots for Python and Java. You can find these in the `PythonBot` and `Javabot` directory respectively.
+<sub><sup>*If you want to use your a different language: you can, but we discourage this. [See below for more info](#my-own-language).*</sup></sub>
     
 You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
 This script has an optional argument to use another config file.
