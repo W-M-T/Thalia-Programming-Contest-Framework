@@ -70,12 +70,12 @@ You can then run this dummy player using `ClientRunner.py [otherconfig]`.
   water comes in 1 tile and everything on those tiles disappears and/or dies
 - The time limit per round is 0.5 seconds
 
-<img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example1.png" width="35%" height="auto" /> <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example2.png" width="35%" height="auto" />
+<img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example1.png" width="45%" height="auto" /> <img src="https://github.com/W-M-T/Thalia-Programming-Contest-Framework/raw/master/framework/img/example2.png" width="45%" height="auto" />
 
 ## Hints
-- Work iteratively, you don't have much time
-- Implementing Minimax will take significant time and probably won't be worth it
-- The water is very dangerous so really watch out for that
+- It is better to build a dumb functional bot which you improve iteratively, then to build a smart bot which you don't complete in time.
+- Implementing Minimax will take significant time and probably won't be worth it.
+- The water is very dangerous so really watch out for that.
 
 ## <a name="my-own-language"></a> I want use a different programming language for my bot!
 You can find a copy of the protocol in the repo. And you can use the example 
