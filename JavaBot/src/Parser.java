@@ -32,43 +32,29 @@ public class Parser {
             
             switch(commands[0]){
                 case "CONFIG":
-                    parseConfig(commands);
+                    handler.handleConfig(commands[1], commands);
                     break;
                 case "START":
-                    parseStart(commands);
+                    if (commands[1].equals("GAME"))
+                        handler.startGame();
+                    else
+                        System.out.println("Undefined Request");
                     break;
                 case "REQUEST":
-                    parseRequest(commands);
+                    if (commands[1].equals("MOVE"))
+                        handler.performAction();
+                    else
+                        System.out.println("Undefined Request");
                     break;
                 case "UPDATE":
-                    parseUpdate(commands);
+                    handler.handleUpdate(commands[1], commands);
                     break;
+                case "YOU":
+                    handler.handleResult(commands[1]);
                 default:
                     System.out.println("Unknown command");
                     done = true;
             }
         }
-    }
-
-    private void parseConfig(String[] commands){
-        handler.handleConfig(commands[1], commands);
-    }
-
-    private void parseStart(String[] commands){
-        if (commands[1].equals("GAME"))
-            handler.startGame();
-        else
-            System.out.println("Undefined Request");
-    }
-
-    private void parseRequest(String[] commands){
-        if (commands[1].equals("MOVE"))
-                handler.performAction();
-        else
-            System.out.println("Undefined Request");
-    }
-
-    private void parseUpdate(String[] commands){
-            handler.handleUpdate(commands[1], commands);
     }
 }

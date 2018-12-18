@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class Player {
     private String pID;
     private Coordinate pos;
@@ -11,6 +14,21 @@ public class Player {
         this.lives = lives;
         this.name = name;
         alive = true;
+    }
+
+    public List<Coordinate> getLegalDirs(GameState state){
+        List<Coordinate> choices = new ArrayList<>();
+        choices.add(new Coordinate(-1, 0));
+        choices.add(new Coordinate(1, 0));
+        choices.add(new Coordinate(0, -1));
+        choices.add(new Coordinate(0, 1));
+        choices.add(new Coordinate(0, 0));
+        List<Coordinate> result = new ArrayList<>();
+        for (Coordinate choice : choices){
+            if (state.getBoard().on_board(pos.add(choice)) && state.getBoard().getTile(pos.add(choice)) == Tile.EMPTY && !state.hasBomb(pos.add(choice)))
+                result.add(choice);
+        }
+        return result;
     }
 
     public void kill() {

@@ -11,9 +11,13 @@ public class ExampleBot extends Bot{
     @Override
     public Move nextMove(GameState state) {
         Random random = new Random();
-        List<Coordinate> choices = getLegalDirs(state);
-        int m = Math.abs(random.nextInt()) % choices.size();
-        boolean b = random.nextInt() % 2 == 0;
-        return new Move(choices.get(m), b);
+        List<Coordinate> choices = state.getPlayer(state.getYou()).getLegalDirs(state);
+        Coordinate c = choices.get(Math.abs(random.nextInt()) % choices.size());
+        boolean b;
+        if (c.equals(new Coordinate(0, 0)))
+            b = false;
+        else
+            b = random.nextInt() % 2 == 0;
+        return new Move(c, b);
     }
 }
