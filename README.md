@@ -7,18 +7,20 @@ The `ClientRunner` connects to the match server and communicates in- and output 
 
 So to get started, you:
 
-- **Fork, Clone or Download this repo**
+- Fork, Clone or Download this repo
 - Choose the language you want to work in. There are starter bots for Python and Java. You can find these in the `PythonBot` and `Javabot` directory respectively.
 <sub><sup>*If you want to use your a different language: you can, but we discourage this. [See below for more info](#my-own-language).*</sup></sub>
     
-You can run your bot by running the ```ClientRunner.py``` script in the framework directory.
+You can run your bot by running the ```ClientRunner.py``` script in the `framework` directory.
 This script has an optional argument to use another config file.
 
-In this directory you will also find a config file. By changing it you can configure:
+### Edit your config file
+In the `framework` directory you will also find a config file. By changing it you can configure:
 - The name of your team
 - Whether to enable the clientside visualiser
+- Whether to print the StdErr output of your bot (which you can use to debug your bot)
+- What command to run to run your bot
 - Where to connect to the server (you probably won't need to change this)
-- What command to run to run your bot.
 
 The Server hosts lobbies to which the clients can connect using lobby ids.
 If you use the same lobby id you will be in the same game. A lobby can have 2-4
