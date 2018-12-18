@@ -65,7 +65,7 @@ You can then run this dummy player using `ClientRunner.py [otherconfig]`.
 - When an explosion touches an other bomb it also instantly explodes
 - If there are multiple bombs on a line still only one tree dies
 - Getting hit by a bomb loses one life
-- If you don't have a lives left you lose and die
+- If you don't have any lives left you lose and die
 - Bomberman is the first battle royale and thus after the specified rounds, 
   water comes in 1 tile and everything on those tiles disappears and/or dies
 - The time limit per round is 0.5 seconds
