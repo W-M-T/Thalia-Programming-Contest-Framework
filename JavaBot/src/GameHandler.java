@@ -22,6 +22,7 @@ public class GameHandler {
     }
 
     public void performAction(){
+        state.nextRound();
         Move move = bot.nextMove(state);
 
         StringBuilder response = new StringBuilder();
@@ -63,6 +64,9 @@ public class GameHandler {
                 break;
             case "YOU":
                 state.setYou(params[2]);
+                break;
+            case "WATER":
+                state.getWaterRounds().add(Integer.parseInt(params[3]));
         }
     }
 
@@ -96,13 +100,38 @@ public class GameHandler {
                     }
                     if (remove != null)
                         bombs.remove(remove);
+                } else {
+                    List<Bomb> bombs = state.getBombs();
+                    for (Bomb bomb: bombs){
+                        if (bomb.getPos().equals(Coordinate.parseCoordinate(params[3])))
+                            bomb.setPrimed();
+                    }
                 }
                 break;
             case "TILE":
-                if (params[2].equals("GONE"))
+                if (params[2].equals("GONE")) {
                     state.getBoard().setTile(Coordinate.parseCoordinate(params[3]), Tile.EMPTY);
+                    System.err.println("Removed tile at " + params[3]);
+                }
                 break;
+            case "WATER":
+                int level = Integer.parseInt(params[2]);
+                for (int y = 0; y < Board.FIELD_SIZE; y++){
+                    for (int x = 0; x < Board.FIELD_SIZE; x++){
+                        if (y < level || Board.FIELD_SIZE - 1 - y < 2 || x < level || Board.FIELD_SIZE - 1 - x < level){
+                            state.getBoard().setTile(new Coordinate(x, y), Tile.WATER);
+                        }
+                    }
+                }
+
         }
+    }
+
+    public void handleResult(String type){
+        if (type.equals("WON"))
+            state.gameOver(true);
+        else
+            state.gameOver(false);
     }
        
 }
