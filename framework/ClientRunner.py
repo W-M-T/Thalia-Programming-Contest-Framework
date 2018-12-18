@@ -46,7 +46,7 @@ def print_stderr(out, startEvent): #Blocking, so done in another thread
     for line in iter(out.readline, b''):
         if len(line) == 0:
             break
-        print("\033[0;33m>>",line.rstrip("\n"), end="\033[0m\n")
+        print("\033[0;33mBOT STDERR >>",line.rstrip("\n"), end="\033[0m\n")
     out.close()
 
 
